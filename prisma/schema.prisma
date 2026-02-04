@@ -4,6 +4,13 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
+enum SaleStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -11,4 +18,102 @@ generator client {
 
 datasource db {
   provider = "mysql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("user")
+}
+
+model Client {
+  id      Int    @id @default(autoincrement())
+  name    String @db.VarChar(50)
+  surname String @db.VarChar(50)
+  dni     String @db.VarChar(8)
+  number  Int
+  email   String @db.VarChar(100)
+
+  sales     Sale[]
+  addresses BillAddress[]
+
+  @@map("client_info")
+}
+
+model BillAddress {
+  id        Int     @id @default(autoincrement())
+  street    String
+  streetNum Int     @map("street_num")
+  floor     Int?
+  apartment String? @db.VarChar(4)
+  locality  String
+  province  String
+  reference String?
+
+  clientId Int    @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("bill_address")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @map("category_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
+
+  subCategories SubCategory[]
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @map("category_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
+
+  categoryId Int      @map("categories_id")
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  products Product[]
+
+  @@map("sub_categories")
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @map("marca_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
+
+  @@map("marca")
+}
+
+model Sale {
+  id        Int        @id @default(autoincrement())
+  createdAt DateTime   @default(now()) @map("created_at")
+  status    SaleStatus @default(PENDING)
+
+  clientId Int    @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id])
+
+  @@map("sale")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  description String
+  unit        String   @db.VarChar(50)
+  price       Decimal
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  imageUrl    String   @map("img")
+
+  subCategoryId Int?         @map("sub_categories_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  @@map("products")
 }
