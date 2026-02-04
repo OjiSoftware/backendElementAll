@@ -29,15 +29,14 @@ model User {
 }
 
 model Client {
-  id          Int    @id @default(autoincrement())
-  name        String @db.VarChar(50)
-  surname     String @db.VarChar(50)
-  dni         String @db.VarChar(8)
-  phoneNumber Int
-  email       String @db.VarChar(100)
-
-  sales     Sale[]
-  addresses BillAddress[]
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(50)
+  surname     String        @db.VarChar(50)
+  dni         String        @db.VarChar(8)
+  phoneNumber Int           @map("phone_number")
+  email       String        @db.VarChar(100)
+  sales       Sale[]
+  addresses   BillAddress[]
 
   @@map("client_info")
 }
@@ -100,7 +99,25 @@ model Sale {
   clientId Int    @map("client_id")
   client   Client @relation(fields: [clientId], references: [id])
 
+  details SaleDetails[]
+
   @@map("sale")
+}
+
+model SaleDetails {
+  id Int @id @default(autoincrement())
+
+  saleId    Int @map("sale_id")
+  productId Int @map("product_id")
+
+  quantity     Int
+  unitaryPrice Decimal @map("unitary_price")
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([saleId, productId])
+  @@map("sale_details")
 }
 
 model Product {
@@ -114,6 +131,8 @@ model Product {
 
   subCategoryId Int?         @map("sub_categories_id")
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  saleDetails SaleDetails[]
 
   @@map("products")
 }
