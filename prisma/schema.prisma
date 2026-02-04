@@ -29,12 +29,12 @@ model User {
 }
 
 model Client {
-  id      Int    @id @default(autoincrement())
-  name    String @db.VarChar(50)
-  surname String @db.VarChar(50)
-  dni     String @db.VarChar(8)
-  number  Int
-  email   String @db.VarChar(100)
+  id          Int    @id @default(autoincrement())
+  name        String @db.VarChar(50)
+  surname     String @db.VarChar(50)
+  dni         String @db.VarChar(8)
+  phoneNumber Int
+  email       String @db.VarChar(100)
 
   sales     Sale[]
   addresses BillAddress[]
