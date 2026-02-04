@@ -121,14 +121,15 @@ model SaleDetails {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  description String
-  unit        String   @db.VarChar(50)
-  price       Decimal
-  status      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  imageUrl    String   @map("img")
-
+  id            Int          @id @default(autoincrement())
+  name          String       @db.VarChar(100)
+  description   String
+  unit          String       @db.VarChar(50)
+  price         Decimal
+  status        Boolean      @default(true)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  imageUrl      String       @map("img")
+  stock         Int
   subCategoryId Int?         @map("sub_categories_id")
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 
