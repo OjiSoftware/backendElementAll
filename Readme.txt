@@ -14,7 +14,7 @@ Orden para hacer el back
 2. Controller => Recibe la request del frontend, llama al service y responde al modulo (cliente, producto, etc). Basicamente es donde se manejan errores y decidimos qué código HTTP devolver
 3. Service    => lógica de negocio (que se hace con los datos antes o despues de que se guarden)
 4. Repository => solo buscamos interactuar con la bd. "Es la única capa que "sabe" dónde están los datos."
-
+5. Server => ultimo paso, agregar al server.ts la ruta del modulo correspondiente
 
 Como funciona el route:
 URL + método HTTP → función que se ejecuta
