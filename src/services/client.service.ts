@@ -7,7 +7,7 @@ type Client = {
 };
 
 
-type CreateClientInput = Omit<Client, "id" | "createdAt" | "updatedAt">;
+type CreateClientInput = Omit<Client, "id" | "createdAt">;
 type UpdateClientInput = Partial<CreateClientInput>;
 
 
@@ -18,8 +18,9 @@ export const getClientService = async (clientId: number) => {
         throw new Error("Error al encontrar el cliente");
     }
 
+    const response = await clientData.json();
 
-    return clientData.json();
+    return response;
 }
 
 export const createClientService = async (data: CreateClientInput) => {
@@ -32,9 +33,30 @@ export const createClientService = async (data: CreateClientInput) => {
         body: JSON.stringify(data)
     })
 
-    return;
+    if (!newClient.ok) {
+        throw new Error("Error al crear el cliente");
+    }
+
+    const response = await newClient.json();
+
+    return response;
 }
 
-export const updateClientService = (clientId: number, data: UpdateClientInput) => {
-    return [];
+export const updateClientService = async (clientId: number, data: UpdateClientInput) => {
+
+    const clientUpdated = await fetch(`api/client/${clientId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    })
+
+    if (!clientUpdated.ok) {
+        throw new Error("Error al actualizar el cliente");
+    }
+
+    const response = await clientUpdated.json();
+
+    return response;
 }
