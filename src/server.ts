@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
-import productRoutes from "./routes/productRoutes"; // importamos el router
+import productRoutes from "./routes/product.routes"; // importamos el router
+import clientRoutes from "./routes/client.routes";
 
 const app = express();
 
@@ -12,6 +13,10 @@ app.get("/", (_req, res) => {
 
 // registramos el router en /api/products
 app.use("/api/products", productRoutes);
+app.use("/api/clients", clientRoutes);
+
+
+
 
 const PORT = process.env.PORT || 3000;
 

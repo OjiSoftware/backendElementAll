@@ -1,62 +1,25 @@
-type Client = {
-    id: number;
-    name: string;
-    email: string;
-    phone?: string;
-    createdAt: Date;
+import * as repo from "../repository/client.repository";
+
+export const getClient = (id: number) => {
+    const client = repo.findClientById(id);
+
+    if (!client) {
+        throw new Error("Cliente no encontrado");
+    }
+
+    return client;
 };
 
+export const createClient = (data: repo.CreateClientInput) => {
+    return repo.insertClient(data);
+};
 
-type CreateClientInput = Omit<Client, "id" | "createdAt">;
-type UpdateClientInput = Partial<CreateClientInput>;
+export const updateClient = (id: number, data: repo.UpdateClientInput) => {
+    const client = repo.updateClient(id, data);
 
-
-export const getClientService = async (clientId: number) => {
-    const clientData = await fetch(`api/client/${clientId}`);
-
-    if (!clientData.ok) {
-        throw new Error("Error al encontrar el cliente");
+    if (!client) {
+        throw new Error("Cliente no encontrado");
     }
 
-    const response = await clientData.json();
-
-    return response;
-}
-
-export const createClientService = async (data: CreateClientInput) => {
-
-    const newClient = await fetch("api/client", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-    })
-
-    if (!newClient.ok) {
-        throw new Error("Error al crear el cliente");
-    }
-
-    const response = await newClient.json();
-
-    return response;
-}
-
-export const updateClientService = async (clientId: number, data: UpdateClientInput) => {
-
-    const clientUpdated = await fetch(`api/client/${clientId}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-    })
-
-    if (!clientUpdated.ok) {
-        throw new Error("Error al actualizar el cliente");
-    }
-
-    const response = await clientUpdated.json();
-
-    return response;
-}
+    return client;
+};
