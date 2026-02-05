@@ -36,3 +36,7 @@ export const updateClient = (
     Object.assign(client, data);
     return client;
 };
+
+export const findAllClients = (): Client[] => {
+  return clients;
+};
