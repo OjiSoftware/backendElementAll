@@ -4,7 +4,7 @@ export const getClient = (req: any, res: any) => {
     try {
         const client = service.getClient(Number(req.params.id));
         res.json(client);
-    } catch (e) {
+    } catch (e:any) {
         res.status(404).json({ error: e.message });
     }
 };
@@ -21,7 +21,7 @@ export const updateClient = (req: any, res: any) => {
             req.body
         );
         res.json(client);
-    } catch (e) {
+    } catch (e:any) {
         res.status(404).json({ error: e.message });
     }
 };

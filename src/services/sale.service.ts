@@ -11,10 +11,7 @@ export type Sale = {
     clientId: number;
 };
 
-
 export type createSaleInput = Omit<Sale, "id" | "createdAt" | "status">;
-
-
 
 export const createSaleService = (data: createSaleInput) => {
     return data;
@@ -27,7 +24,3 @@ export const getSaleService = (saleId: number) => {
 export const cancelSaleService = (saleId: number) => {
     return [];
 }
-
-
-
-

@@ -13,18 +13,11 @@ type CreateBillAddressInput = Omit<BillAddress, "id">;
 
 type UpdateBillAddressInput = Partial<CreateBillAddressInput>;
 
-
-
-
 export const getBillAddressService = (addressId: number) => {
-
-
     return [];
 }
 
 export const createBillAdressService = (data: CreateBillAddressInput) => {
-
-
     return data;
 }
 
@@ -32,13 +25,12 @@ export const updateBillAddressService = (addressId: number, data: UpdateBillAddr
     return [];
 }
 
-
 export const getProvincesService = () => {
 
     return [];
 }
+
 export const getLocalitiesService = (provinceId: number) => {
 
     return [];
 }
-

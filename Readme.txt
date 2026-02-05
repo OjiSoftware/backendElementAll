@@ -7,8 +7,6 @@ PUT	        Actualizar datos
 PATCH	    Actualizar parcialmente
 DELETE	    Eliminar datos
 
-
-
 Orden para hacer el back
 1. Route      => conectamos el controller con express, lo usamos de puente digamos.
 2. Controller => Recibe la request del frontend, llama al service y responde al modulo (cliente, producto, etc). Basicamente es donde se manejan errores y decidimos qué código HTTP devolver
@@ -20,9 +18,7 @@ Como funciona el route:
 URL + método HTTP → función que se ejecuta
 (GET /api/client/5)
 
-
-
-esto me lo hzio gpt esta bueno para entender como es el orden de trebajo cuando se hace una peticiones
+esto me lo hizo gpt esta bueno para entender como es el orden de trabajo cuando se hace una peticion
 
 Frontend
    |
