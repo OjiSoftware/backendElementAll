@@ -56,17 +56,20 @@ Siempre que quieras indicar error: res.status(404).json({error: "No encontrado"}
 Actualizar el proyecto 
 
 1- git pull origin joaquin
-2- npm install
+
+2- rm -rf node_modules package-lock.json
+
+3- npm install
 
 
-3- Generar Prisma Client
+4- Generar Prisma Client
  npx prisma generate
 
 
-4- Configurar base de datos local
+5- Configurar base de datos local
 osea creen la bd (testdb) en su dbeaver
 
-5- Levantar MySQL :
+6- Levantar MySQL :
 docker run --name mysql-dev -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=elementall -p 3306:3306 -d mysql:8
 
 
