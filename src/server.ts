@@ -1,25 +1,28 @@
 import "dotenv/config";
 import express from "express";
-import productRoutes from "./routes/product.routes"; // importamos el router
+
+// Importar rutas
 import clientRoutes from "./routes/client.routes";
+import userRoutes from "./routes/user.routes";
+import brandRoutes from "./routes/brand.routes";
 
 const app = express();
 
+// Middleware
 app.use(express.json());
 
+// Ruta principal
 app.get("/", (_req, res) => {
     res.send("API funcionando 🚀");
 });
 
-// registramos el router en /api/products
-app.use("/api/products", productRoutes);
+// Rutas de la API
+app.use("/api/users", userRoutes);
 app.use("/api/clients", clientRoutes);
+app.use("/api/brands", brandRoutes);
 
-
-
-
+// Puerto
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });

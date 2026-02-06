@@ -50,3 +50,40 @@ Siempre que necesites un ID o un filtro, tomas de req.params o req.query.
 
 Siempre que quieras devolver datos: res.json().
 Siempre que quieras indicar error: res.status(404).json({error: "No encontrado"}).
+
+==========================================================================================================================================================================================================================================================================================================================================
+
+Actualizar el proyecto 
+
+1- git pull origin joaquin
+
+2- rm -rf node_modules package-lock.json
+
+3- npm install
+
+
+4- Generar Prisma Client
+ npx prisma generate
+
+
+5- Configurar base de datos local
+osea creen la bd (testdb) en su dbeaver
+
+6- Levantar MySQL :
+docker run --name mysql-dev -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=elementall -p 3306:3306 -d mysql:8
+
+
+7- Crear .env:
+DATABASE_URL="mysql://root:root@localhost:3306/elementall"
+PORT=3000
+
+
+8- Aplicar migraciones
+npx prisma migrate dev
+
+
+9- Levantar servidor
+npm run dev
+
+
+Por las dudas cuando hagan el npm i, y el prisma generate, verifiquen las versiones de prisma, para que este todo en la 6.9

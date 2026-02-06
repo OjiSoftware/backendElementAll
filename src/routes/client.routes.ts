@@ -1,11 +1,13 @@
+// src/routes/client.routes.ts
 import { Router } from "express";
-import * as controller from "../controllers/client.controller";
+import * as clientController from "../controllers/client.controller";
 
 const router = Router();
 
-router.get("/:id", controller.getClient);
-router.post("/", controller.createClient);
-router.put("/:id", controller.updateClient);
-router.get("/", controller.getAllClients);
+router.get("/", clientController.getClients);
+router.get("/:id", clientController.getClient);
+router.post("/", clientController.createClient);
+router.put("/:id", clientController.updateClient);
+router.delete("/:id", clientController.deleteClient);
 
 export default router;

@@ -1,53 +1,84 @@
+// src/controllers/client.controller.ts
 import { Request, Response } from "express";
-import * as service from "../services/client.service";
+import * as clientService from "../services/client.service";
 
-// GET /api/clients/:id
+/**
+ * Obtiene todos los clientes.
+ */
+export const getClients = async (_req: Request, res: Response) => {
+    try {
+        const clients = await clientService.getAllClients();
+        res.json(clients);
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * Obtiene un cliente por su ID.
+ */
 export const getClient = async (req: Request, res: Response) => {
     try {
-        const id = Number(req.params.id);
-
-        if (isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
-        }
-
-        const client = await service.getClient(id);
+        const client = await clientService.getClientById(Number(req.params.id));
         res.json(client);
-    } catch (e: any) {
-        res.status(404).json({ error: e.message });
+    } catch (error: any) {
+        if (error.message === "Cliente no encontrado") {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 };
 
-// POST /api/clients
+/**
+ * Crea un nuevo cliente.
+ */
 export const createClient = async (req: Request, res: Response) => {
     try {
-        const client = await service.createClient(req.body);
-        res.status(201).json(client);
-    } catch (e: any) {
-        res.status(400).json({ error: e.message });
+        const result = await clientService.createClient(req.body);
+        res.status(201).json({
+            message: result.message,
+            client: result.client,
+        });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
     }
 };
 
-// PUT /api/clients/:id
+/**
+ * Actualiza un cliente existente.
+ */
 export const updateClient = async (req: Request, res: Response) => {
     try {
-        const id = Number(req.params.id);
-
-        if (isNaN(id)) {
-            return res.status(400).json({ error: "ID inválido" });
+        const result = await clientService.updateClient(
+            Number(req.params.id),
+            req.body,
+        );
+        res.json({
+            message: result.message,
+            client: result.client,
+        });
+    } catch (error: any) {
+        if (error.message === "Cliente no encontrado") {
+            return res.status(404).json({ message: error.message });
         }
-
-        const client = await service.updateClient(id, req.body);
-        res.json(client);
-    } catch (e: any) {
-        res.status(404).json({ error: e.message });
+        res.status(500).json({ message: "Error al actualizar cliente" });
     }
 };
 
-export const getAllClients = async (_req:any, res:any) => {
-  try {
-    const clients = await service.getAllClients();
-    res.json(clients);
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
+/**
+ * Elimina un cliente.
+ */
+export const deleteClient = async (req: Request, res: Response) => {
+    try {
+        const result = await clientService.deleteClient(Number(req.params.id));
+        res.json({
+            message: result.message,
+            client: result.client,
+        });
+    } catch (error: any) {
+        if (error.message === "Cliente no encontrado") {
+            return res.status(404).json({ message: error.message });
+        }
+        res.status(500).json({ message: "Error al eliminar cliente" });
+    }
 };
