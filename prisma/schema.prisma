@@ -69,17 +69,17 @@ model Category {
 
 model SubCategory {
   id        Int      @id @default(autoincrement())
-  name      String   @unique @map("category_name") @db.VarChar(100)
+  name      String   @unique @map("subcategory_name") @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
   status    Boolean  @default(true)
 
   categoryId Int      @map("categories_id")
   category   Category @relation(fields: [categoryId], references: [id])
 
-  brands    Brand[]
-  products  Product[]
+  brands    Brand[]    // Cada subcategoría puede tener varias marcas
+  products  Product[]  // Productos asociados a esta subcategoría
 
-  @@map("sub_categories")
+  @@map("subcategories")
 }
 
 model Brand {
@@ -88,7 +88,7 @@ model Brand {
   createdAt   DateTime  @default(now()) @map("created_at")
   status      Boolean   @default(true)
 
-  subCategoryId Int?       @map("sub_categories_id")
+  subCategoryId Int?       @map("sub_categories_id") // Marca pertenece a una subcategoría
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 
   products    Product[]

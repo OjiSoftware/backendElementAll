@@ -1,9 +1,6 @@
 import { prisma } from "../prisma";
 import { Category as CategoryModel } from "../generated/prisma/client";
-import {
-    CreateCategoryInput,
-    UpdateCategoryInput,
-} from "../types/category.types";
+import { CreateCategoryInput, UpdateCategoryInput } from "../types/category.types";
 
 /**
  * Obtiene todas las categorías activas ordenadas por ID ascendente.
