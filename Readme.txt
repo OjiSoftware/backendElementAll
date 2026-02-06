@@ -1,89 +1,89 @@
+# Eficen 360 - Backend
 
-Metodos de uso para la api(usenlos para peticiones, creates, updates, etc)
-Método	    Uso
-GET	        Obtener datos
-POST	    Crear datos
-PUT	        Actualizar datos
-PATCH	    Actualizar parcialmente
-DELETE	    Eliminar datos
+## Requisitos
 
-Orden para hacer el back
-1. Route      => conectamos el controller con express, lo usamos de puente digamos.
-2. Controller => Recibe la request del frontend, llama al service y responde al modulo (cliente, producto, etc). Basicamente es donde se manejan errores y decidimos qué código HTTP devolver
-3. Service    => lógica de negocio (que se hace con los datos antes o despues de que se guarden)
-4. Repository => solo buscamos interactuar con la bd. "Es la única capa que "sabe" dónde están los datos."
-5. Server => ultimo paso, agregar al server.ts la ruta del modulo correspondiente
+- Node.js >= 18
+- Docker y Docker Compose
+- Prisma 7.3
 
-Como funciona el route:
-URL + método HTTP → función que se ejecuta
-(GET /api/client/5)
+## Instalación y configuración
 
-esto me lo hizo gpt esta bueno para entender como es el orden de trabajo cuando se hace una peticion
+1. Instalar dependencias:
+
+  npm install
+
+2. Generar Prisma Client:
+
+  npx prisma generate
+
+3. Configurar variables de entorno en un archivo `.env`:
+
+  MYSQL_ROOT_PASSWORD=root
+  MYSQL_DATABASE=elementall
+  MYSQL_USER=app
+  MYSQL_PASSWORD=app
+
+  PORT=3000
+
+  DATABASE_HOST=mysql
+  DATABASE_PORT=3306
+  DATABASE_USER=app
+  DATABASE_PASSWORD=app
+  DATABASE_NAME=elementall
+
+  DATABASE_URL="mysql://app:app@mysql:3306/elementall"
+
+
+4. Levantar base de datos y backend con Docker Compose:
+
+  docker compose down -v
+  docker compose up --build
+
+5. Acceder al contenedor del backend en otra terminal(si necesitás ejecutar comandos dentro):
+
+  docker exec -it elementall_backend sh
+
+6. Sincronizar el schema de Prisma con la base de datos:
+
+  npx prisma db push
+
+## Uso de la API
+
+| Método | Uso                        |
+|--------|----------------------------|
+| GET    | Obtener datos              |
+| POST   | Crear datos                |
+| PUT    | Actualizar datos           |
+| PATCH  | Actualizar parcialmente    |
+| DELETE | Eliminar datos             |
+
+## Flujo de trabajo del backend
 
 Frontend
    |
    v
-Routes (router.put("/:id", controller.updateClient))
+Routes (conectan URL y método HTTP con controller)
    |
    v
-Controller (recibe req.body, llama al service)
+Controller (recibe req, llama al service y devuelve res)
    |
    v
-Service (valida reglas de negocio, llama repository)
+Service (aplica reglas de negocio y llama al repository)
    |
    v
-Repository (actualiza DB)
+Repository (interactúa directamente con la base de datos)
    |
    v
-Service (retorna cliente actualizado)
+Service (retorna datos procesados)
    |
    v
-Controller (res.json(cliente))
+Controller (res.json(datos))
    |
    v
 Frontend recibe respuesta
 
+## Notas
 
-Controller:
-Siempre que crees o modifiques datos, tomas la información de req.body.
-Siempre que necesites un ID o un filtro, tomas de req.params o req.query.
-
-Siempre que quieras devolver datos: res.json().
-Siempre que quieras indicar error: res.status(404).json({error: "No encontrado"}).
-
-==========================================================================================================================================================================================================================================================================================================================================
-
-Actualizar el proyecto 
-
-1- git pull origin joaquin
-
-2- rm -rf node_modules package-lock.json
-
-3- npm install
-
-
-4- Generar Prisma Client
- npx prisma generate
-
-
-5- Configurar base de datos local
-osea creen la bd (testdb) en su dbeaver
-
-6- Levantar MySQL :
-docker run --name mysql-dev -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=elementall -p 3306:3306 -d mysql:8
-
-
-7- Crear .env:
-DATABASE_URL="mysql://root:root@localhost:3306/elementall"
-PORT=3000
-
-
-8- Aplicar migraciones
-npx prisma migrate dev
-
-
-9- Levantar servidor
-npm run dev
-
-
-Por las dudas cuando hagan el npm i, y el prisma generate, verifiquen las versiones de prisma, para que este todo en la 6.9
+- Controllers: usar `req.body` para creación/modificación y `req.params`/`req.query` para IDs o filtros.
+- Devolver datos: `res.json()`.
+- Errores: `res.status(código).json({ error: "Mensaje" })`.

@@ -1,16 +1,12 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
+import * as productController from "../controllers/product.controller";
 
 const router = Router();
 
-// Endpoint GET /api/products
-router.get("/", (_req: Request, res: Response) => {
-    res.json({ message: "Listando productos" });
-});
-
-// Endpoint POST /api/products
-router.post("/", (req: Request, res: Response) => {
-    console.log(req.body); // para ver qué envía Postman
-    res.json({ message: "Producto creado", data: req.body });
-});
+router.get("/", productController.getProducts);
+router.get("/:id", productController.getProduct);
+router.post("/", productController.createProduct);
+router.put("/:id", productController.updateProduct);
+router.delete("/:id", productController.deleteProduct);
 
 export default router;

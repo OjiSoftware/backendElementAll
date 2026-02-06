@@ -5,6 +5,8 @@ import express from "express";
 import clientRoutes from "./routes/client.routes";
 import userRoutes from "./routes/user.routes";
 import brandRoutes from "./routes/brand.routes";
+import productRoutes from "./routes/product.routes";
+import categoryRoutes from "./routes/category.routes";
 
 const app = express();
 
@@ -20,6 +22,8 @@ app.get("/", (_req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/brands", brandRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/categories", categoryRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;

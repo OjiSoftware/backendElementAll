@@ -58,10 +58,10 @@ model BillAddress {
 }
 
 model Category {
-  id        Int           @id @default(autoincrement())
-  name      String        @unique @map("category_name") @db.VarChar(100)
-  createdAt DateTime      @default(now()) @map("created_at")
-  status    Boolean       @default(true)
+  id           Int           @id @default(autoincrement())
+  name         String        @unique @map("category_name") @db.VarChar(100)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  status       Boolean       @default(true)
   subCategories SubCategory[]
 
   @@map("categories")
@@ -76,16 +76,22 @@ model SubCategory {
   categoryId Int      @map("categories_id")
   category   Category @relation(fields: [categoryId], references: [id])
 
-  products Product[]
+  brands    Brand[]
+  products  Product[]
 
   @@map("sub_categories")
 }
 
 model Brand {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique @map("marca_name") @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at")
-  status    Boolean  @default(true)
+  id          Int       @id @default(autoincrement())
+  name        String    @unique @map("marca_name") @db.VarChar(100)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  status      Boolean   @default(true)
+
+  subCategoryId Int?       @map("sub_categories_id")
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  products    Product[]
 
   @@map("marca")
 }
@@ -129,8 +135,12 @@ model Product {
   createdAt     DateTime     @default(now()) @map("created_at")
   imageUrl      String       @map("img") @db.VarChar(255)
   stock         Int
+
   subCategoryId Int?         @map("sub_categories_id")
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+
+  brandId       Int?         @map("brand_id")
+  brand         Brand?       @relation(fields: [brandId], references: [id])
 
   saleDetails SaleDetails[]
 
