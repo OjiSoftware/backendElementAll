@@ -43,7 +43,7 @@ export const getClientById = async (id: number): Promise<ClientModel> => {
 export const createClient = async (
     data: CreateClientInput,
 ): Promise<{ message: string; client: ClientModel }> => {
-    const client = await clientRepo.insertClient(data);
+    const client = await clientRepo.createClient(data);
 
     return {
         message: "Cliente creado con éxito",

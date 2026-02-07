@@ -4,7 +4,7 @@ export type CreateClientInput = {
     name: string;
     surname: string;
     dni: string;
-    phoneNumber: number;
+    phoneNumber: string;
     email: string;
 };
 

@@ -41,7 +41,7 @@ export const findClientById = async (
  * @returns Cliente recién creado.
  * @throws Error si falla la inserción.
  */
-export const insertClient = async (
+export const createClient = async (
     data: CreateClientInput,
 ): Promise<ClientModel> => {
     try {
