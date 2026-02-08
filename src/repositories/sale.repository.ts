@@ -81,20 +81,20 @@ export const updateSale = async (id: number, data: UpdateSaleInput): Promise<Sal
                 status: data.status,
                 details: data.details
                     ? {
-                          upsert: data.details.map(d => ({
-                              where: { saleId_productId: { saleId: id, productId: d.productId } },
-                              create: {
-                                  productId: d.productId,
-                                  quantity: d.quantity ?? 1,
-                                  unitaryPrice: d.unitaryPrice ?? 0,
-                              },
-                              update: {
-                                  quantity: d.quantity,
-                                  unitaryPrice: d.unitaryPrice,
-                              },
-                          })),
-                      }
-                    : undefined,
+                        upsert: data.details.map(d => ({
+                            where: { saleId_productId: { saleId: id, productId: d.productId } },
+                            create: {
+                                productId: d.productId,
+                                quantity: d.quantity ?? 1,
+                                unitaryPrice: d.unitaryPrice ?? 0,
+                            },
+                            update: {
+                                quantity: d.quantity,
+                                unitaryPrice: d.unitaryPrice,
+                            },
+                        })),
+                    }
+                : undefined,
             },
             include: { details: true },
         });
