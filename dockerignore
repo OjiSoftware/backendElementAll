@@ -1,6 +1,0 @@
-node_modules
-dist
-.env
-.git
-prisma/migrations
-npm-debug.log
