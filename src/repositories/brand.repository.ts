@@ -1,18 +1,14 @@
-// src/repositories/brand.repository.ts
 import { prisma } from "../prisma";
 import { Brand as BrandModel } from "../generated/prisma/client";
 import { CreateBrandInput, UpdateBrandInput } from "../types/brand.types";
 
-/**
- * Devuelve todas las marcas activas.
- * @returns Array de marcas activas.
- * @throws Error si falla la consulta a la base de datos.
- */
+
 export const findAllBrands = async (): Promise<BrandModel[]> => {
     try {
         return await prisma.brand.findMany({
             where: { status: true },
             orderBy: { id: "asc" },
+            include: { subCategory: true }, // ✅ Incluye la relación
         });
     } catch (error) {
         console.error("Error al obtener marcas:", error);
@@ -20,29 +16,22 @@ export const findAllBrands = async (): Promise<BrandModel[]> => {
     }
 };
 
-/**
- * Busca una marca por su ID.
- * @param id - ID de la marca a buscar.
- * @returns Marca encontrada o null si no existe.
- * @throws Error si falla la consulta.
- */
+
 export const findBrandById = async (id: number): Promise<BrandModel | null> => {
     try {
-        return await prisma.brand.findUnique({ where: { id } });
+        return await prisma.brand.findUnique({
+            where: { id },
+            include: { subCategory: true }, // ✅ Incluye la relación
+        });
     } catch (error) {
         console.error(`Error al buscar marca con id ${id}:`, error);
         throw new Error("No se pudo buscar la marca");
     }
 };
 
-/**
- * Crea una nueva marca.
- * @param data - Datos de la marca a crear.
- * @returns Objeto con mensaje de éxito y la marca creada.
- * @throws Error si falla la creación.
- */
+
 export const insertBrand = async (
-    data: CreateBrandInput,
+    data: CreateBrandInput
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
         const brand = await prisma.brand.create({ data });
@@ -53,16 +42,10 @@ export const insertBrand = async (
     }
 };
 
-/**
- * Actualiza una marca existente.
- * @param id - ID de la marca a actualizar.
- * @param data - Datos a actualizar.
- * @returns Objeto con mensaje de éxito y la marca actualizada.
- * @throws Error si falla la actualización.
- */
+
 export const updateBrand = async (
     id: number,
-    data: UpdateBrandInput,
+    data: UpdateBrandInput
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
         const brand = await prisma.brand.update({ where: { id }, data });
@@ -73,14 +56,8 @@ export const updateBrand = async (
     }
 };
 
-/**
- * Deshabilita (soft delete) una marca.
- * @param id - ID de la marca a deshabilitar.
- * @returns Objeto con mensaje de éxito y la marca deshabilitada.
- * @throws Error si falla la operación.
- */
 export const disableBrand = async (
-    id: number,
+    id: number
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
         const brand = await prisma.brand.update({
