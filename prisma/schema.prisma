@@ -33,7 +33,7 @@ model Client {
   name        String        @db.VarChar(50)
   surname     String        @db.VarChar(50)
   dni         String        @unique @db.VarChar(8)
-  phoneNumber String        @unique @db.VarChar(20) @map("phone_number")
+  phoneNumber String        @unique @map("phone_number") @db.VarChar(20)
   email       String        @unique @db.VarChar(100)
   sales       Sale[]
   addresses   BillAddress[]
@@ -58,10 +58,10 @@ model BillAddress {
 }
 
 model Category {
-  id           Int           @id @default(autoincrement())
-  name         String        @unique @map("category_name") @db.VarChar(100)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  status       Boolean       @default(true)
+  id            Int           @id @default(autoincrement())
+  name          String        @unique @map("category_name") @db.VarChar(100)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  status        Boolean       @default(true)
   subCategories SubCategory[]
 
   @@map("categories")
@@ -76,22 +76,22 @@ model SubCategory {
   categoryId Int      @map("categories_id")
   category   Category @relation(fields: [categoryId], references: [id])
 
-  brands    Brand[]    // Cada subcategoría puede tener varias marcas
-  products  Product[]  // Productos asociados a esta subcategoría
+  brands   Brand[] // Cada subcategoría puede tener varias marcas
+  products Product[] // Productos asociados a esta subcategoría
 
   @@map("subcategories")
 }
 
 model Brand {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique @map("marca_name") @db.VarChar(100)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  status      Boolean   @default(true)
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @map("marca_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
 
-  subCategoryId Int?       @map("sub_categories_id") // Marca pertenece a una subcategoría
-  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId Int         @map("sub_categories_id") // Marca pertenece a una subcategoría
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  products    Product[]
+  products Product[]
 
   @@map("marca")
 }
@@ -126,21 +126,21 @@ model SaleDetails {
 }
 
 model Product {
-  id            Int          @id @default(autoincrement())
-  name          String       @db.VarChar(100)
-  description   String       @db.VarChar(500)
-  unit          String       @db.VarChar(50)
-  price         Decimal
-  status        Boolean      @default(true)
-  createdAt     DateTime     @default(now()) @map("created_at")
-  imageUrl      String       @map("img") @db.VarChar(255)
-  stock         Int
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String   @db.VarChar(500)
+  unit        String   @db.VarChar(50)
+  price       Decimal
+  status      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  imageUrl    String   @map("img") @db.VarChar(255)
+  stock       Int
 
   subCategoryId Int?         @map("sub_categories_id")
   subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 
-  brandId       Int?         @map("brand_id")
-  brand         Brand?       @relation(fields: [brandId], references: [id])
+  brandId Int?   @map("brand_id")
+  brand   Brand? @relation(fields: [brandId], references: [id])
 
   saleDetails SaleDetails[]
 
