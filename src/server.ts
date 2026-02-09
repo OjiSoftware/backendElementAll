@@ -10,6 +10,7 @@ import categoryRoutes from "./routes/category.routes";
 import subCategoryRoutes from "./routes/subcategory.routes";
 import saleRoutes from "./routes/sale.routes";
 import saleDetailRoutes from "./routes/saleDetail.routes";
+import billAddressRoutes from "./routes/billAddress.routes";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/subcategories", subCategoryRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/salesDetails", saleDetailRoutes);
+app.use("/api/billAddresses", billAddressRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;
