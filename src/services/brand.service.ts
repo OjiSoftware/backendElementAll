@@ -1,8 +1,12 @@
 import * as brandRepo from "../repositories/brand.repository";
-import { Brand as BrandModel } from "../generated/prisma/client";
+import { Brand as BrandModel, Prisma } from "../generated/prisma/client";
 import { CreateBrandInput, UpdateBrandInput } from "../types/brand.types";
 
-export const getAllBrands = async (): Promise<BrandModel[]> => {
+type BrandWithSubCategory = Prisma.BrandGetPayload<{
+    include: { subCategory: true };
+}>;
+
+export const getAllBrands = async (): Promise<BrandWithSubCategory[]> => {
     return brandRepo.findAllBrands();
 };
 
