@@ -26,6 +26,8 @@ model User {
   email     String   @unique @db.VarChar(100)
   password  String   @db.VarChar(255)
   name      String   @db.VarChar(50)
+
+  @@map("user")
 }
 
 model Client {
@@ -93,7 +95,7 @@ model Brand {
 
   products Product[]
 
-  @@map("marca")
+  @@map("brand")
 }
 
 model Sale {

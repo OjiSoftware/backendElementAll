@@ -25,10 +25,10 @@ app.get("/", (_req, res) => {
 // Rutas de la API
 app.use("/api/users", userRoutes);
 app.use("/api/clients", clientRoutes);
-app.use("/api/brands", brandRoutes);
-app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/subcategories", subCategoryRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/salesDetails", saleDetailRoutes);
 app.use("/api/billAddresses", billAddressRoutes);
