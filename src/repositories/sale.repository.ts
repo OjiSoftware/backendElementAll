@@ -46,20 +46,40 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
  */
 export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
     try {
-        return await prisma.sale.create({
-            data: {
-                clientId: data.clientId,
-                status: data.status ?? "PENDING",
-                details: {
-                    create: data.details.map(d => ({
-                        productId: d.productId,
-                        quantity: d.quantity,
-                        unitaryPrice: d.unitaryPrice,
-                    })),
+
+        return await prisma.$transaction(async (tx) => {
+            
+            for (const item of data.details) {
+                const updatedProduct = await tx.product.update({
+                    where: { id: item.productId },
+                    data: {
+                        stock: {
+                            decrement: item.quantity,
+                        },
+                    },
+                })
+                if (updatedProduct.stock < 0) {
+                    throw new Error(`Stock insuficiente para el producto ID: ${item.productId}`);
+                }
+            }
+            
+            return await tx.sale.create({
+                data: {
+                    clientId: data.clientId,
+                    status: data.status ?? "PENDING",
+                    details: {
+                        create: data.details.map(d => ({
+                            productId: d.productId,
+                            quantity: d.quantity,
+                            unitaryPrice: d.unitaryPrice,
+                        })),
+                    },
                 },
-            },
-            include: { details: true },
-        });
+                include: { details: true },
+            });
+        }) 
+
+        
     } catch (error) {
         console.error("Error al crear venta:", error);
         throw new Error("No se pudo crear la venta");
