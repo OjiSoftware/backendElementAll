@@ -7,6 +7,6 @@ router.get("/", saleController.getSales);
 router.get("/:id", saleController.getSale);
 router.post("/", saleController.createSale);
 router.put("/:id", saleController.updateSale);
-router.delete("/:id", saleController.deleteSale);
+router.delete("/:id", saleController.disableSale);
 
 export default router;

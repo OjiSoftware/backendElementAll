@@ -72,10 +72,10 @@ export const updateProduct = async (
  * @returns Objeto con mensaje de confirmación y el producto eliminado
  * @throws Error si no se encuentra el producto
  */
-export const deleteProduct = async (
+export const disableProduct = async (
     id: number,
 ): Promise<{ message: string; product: ProductModel }> => {
-    const deleted = await productRepo.deleteProduct(id);
+    const deleted = await productRepo.disableProduct(id);
 
     if (!deleted) {
         throw new Error("Producto no encontrado");

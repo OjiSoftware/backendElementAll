@@ -64,9 +64,9 @@ export const updateProduct = async (req: Request, res: Response) => {
 /**
  * Elimina un producto
  */
-export const deleteProduct = async (req: Request, res: Response) => {
+export const disableProduct = async (req: Request, res: Response) => {
     try {
-        const result = await productService.deleteProduct(
+        const result = await productService.disableProduct(
             Number(req.params.id),
         );
         res.json(result);

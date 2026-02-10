@@ -64,9 +64,9 @@ export const updateSale = async (req: Request, res: Response) => {
 /**
  * Elimina una venta
  */
-export const deleteSale = async (req: Request, res: Response) => {
+export const disableSale = async (req: Request, res: Response) => {
     try {
-        const result = await saleService.deleteSale(
+        const result = await saleService.disableSale(
             Number(req.params.id),
         );
         res.json(result);

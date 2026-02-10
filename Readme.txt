@@ -87,3 +87,9 @@ Frontend recibe respuesta
 - Controllers: usar `req.body` para creación/modificación y `req.params`/`req.query` para IDs o filtros.
 - Devolver datos: `res.json()`.
 - Errores: `res.status(código).json({ error: "Mensaje" })`.
+
+
+
+## A TENER EN CUENTA
+- Chequear que el carrito se guarde en localstorage pero verifique los datos con el backend para seguridad. Sino hacer que
+el stock se modifique solamente al checkout y la venta se cree al iniciar carrito.

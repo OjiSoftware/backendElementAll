@@ -129,14 +129,15 @@ export const updateSale = async (id: number, data: UpdateSaleInput): Promise<Sal
  * @param id - ID de la venta a eliminar.
  * @returns Venta eliminada o null si no existe.
  */
-export const deleteSale = async (id: number): Promise<SaleModel | null> => {
+export const disableSale = async (id: number): Promise<SaleModel | null> => {
     try {
-        return await prisma.sale.delete({
+        return await prisma.sale.update({
             where: { id },
+            data: { status: "CANCELLED" },
             include: { details: true },
         });
     } catch (error) {
-        console.warn(`Venta con id ${id} no encontrada o error al eliminar:`, error);
-        return null;
+        console.warn(`Venta con id ${id} no encontrada o error al deshabilitar:`, error);
+        throw new Error("No se pudo deshabilitar la venta");
     }
 };

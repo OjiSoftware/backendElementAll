@@ -87,18 +87,19 @@ export const updateProduct = async (
  * @param id - ID del producto a eliminar
  * @returns Producto eliminado o null si no existe
  */
-export const deleteProduct = async (
+export const disableProduct = async (
     id: number,
 ): Promise<ProductModel | null> => {
     try {
-        return await prisma.product.delete({
+        return await prisma.product.update({
             where: { id },
+            data: { status: false },
         });
     } catch (error) {
         console.warn(
             `Producto con id ${id} no encontrado o error al eliminar:`,
             error,
         );
-        return null;
+        throw new Error("No se pudo eliminar el producto");
     }
 };

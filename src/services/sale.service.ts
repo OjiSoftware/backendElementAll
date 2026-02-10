@@ -71,10 +71,10 @@ export const updateSale = async (
  * @returns Mensaje de confirmación y la venta eliminada
  * @throws Error si la venta no existe
  */
-export const deleteSale = async (
+export const disableSale = async (
     id: number,
 ): Promise<{ message: string; sale: SaleModel }> => {
-    const sale = await saleRepo.deleteSale(id);
+    const sale = await saleRepo.disableSale(id);
 
     if (!sale) {
         throw new Error("Venta no encontrada");
