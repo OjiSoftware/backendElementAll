@@ -4,7 +4,6 @@ export type CreateSaleInput = {
   details: {
     productId: number; 
     quantity: number;
-    unitaryPrice: number; 
   }[];
 };
 
@@ -14,6 +13,5 @@ export type UpdateSaleInput = {
   details?: {
     productId: number;
     quantity?: number;     
-    unitaryPrice?: number; 
   }[];
 };

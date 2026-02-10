@@ -46,21 +46,29 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
  */
 export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
     try {
-
         return await prisma.$transaction(async (tx) => {
-            
+            const detailsWithPrices = [];
+
             for (const item of data.details) {
-                const updatedProduct = await tx.product.update({
-                    where: { id: item.productId },
-                    data: {
-                        stock: {
-                            decrement: item.quantity,
-                        },
-                    },
-                })
-                if (updatedProduct.stock < 0) {
-                    throw new Error(`Stock insuficiente para el producto ID: ${item.productId}`);
+
+                const product = await tx.product.findUnique({
+                    where: { id: item.productId }
+                });
+                if (!product) {
+                    throw new Error(`Producto con ID ${item.productId} no encontrado`);
                 }
+                if (product.stock < item.quantity) {
+                    throw new Error(`Stock insuficiente para el producto: ${product.name}`);
+                }
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { decrement: item.quantity } },
+                });
+                detailsWithPrices.push({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    unitaryPrice: product.price,
+                });
             }
             
             return await tx.sale.create({
@@ -68,21 +76,15 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                     clientId: data.clientId,
                     status: data.status ?? "PENDING",
                     details: {
-                        create: data.details.map(d => ({
-                            productId: d.productId,
-                            quantity: d.quantity,
-                            unitaryPrice: d.unitaryPrice,
-                        })),
+                        create: detailsWithPrices,
                     },
                 },
                 include: { details: true },
             });
-        }) 
-
-        
-    } catch (error) {
+        });
+    } catch (error: any) {
         console.error("Error al crear venta:", error);
-        throw new Error("No se pudo crear la venta");
+        throw new Error(error.message || "No se pudo crear la venta");
     }
 };
 
@@ -94,33 +96,49 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
  */
 export const updateSale = async (id: number, data: UpdateSaleInput): Promise<SaleModel | null> => {
     try {
-        return await prisma.sale.update({
-            where: { id },
-            data: {
-                clientId: data.clientId,
-                status: data.status,
-                details: data.details
-                    ? {
-                        upsert: data.details.map(d => ({
-                            where: { saleId_productId: { saleId: id, productId: d.productId } },
-                            create: {
-                                productId: d.productId,
-                                quantity: d.quantity ?? 1,
-                                unitaryPrice: d.unitaryPrice ?? 0,
-                            },
-                            update: {
-                                quantity: d.quantity,
-                                unitaryPrice: d.unitaryPrice,
-                            },
-                        })),
+        return await prisma.$transaction(async (tx) => {
+            let processedDetails = undefined;
+
+            if (data.details) {
+                processedDetails = [];
+                for (const item of data.details) {
+
+                    const product = await tx.product.findUnique({
+                        where: { id: item.productId }
+                    });
+
+                    if (!product) {
+                        throw new Error(`Producto con ID ${item.productId} no encontrado`);
                     }
-                : undefined,
-            },
-            include: { details: true },
+
+                    processedDetails.push({
+                        where: { saleId_productId: { saleId: id, productId: item.productId } },
+                        create: {
+                            productId: item.productId,
+                            quantity: item.quantity ?? 1,
+                            unitaryPrice: product.price,
+                        },
+                        update: {
+                            quantity: item.quantity,
+                            unitaryPrice: product.price, 
+                        },
+                    });
+                }
+            }
+
+            return await tx.sale.update({
+                where: { id },
+                data: {
+                    clientId: data.clientId,
+                    status: data.status,
+                    details: processedDetails ? { upsert: processedDetails } : undefined,
+                },
+                include: { details: true },
+            });
         });
-    } catch (error) {
-        console.warn(`Venta con id ${id} no encontrada o error al actualizar:`, error);
-        return null;
+    } catch (error: any) {
+        console.error(`Error al actualizar venta con id ${id}:`, error);
+        throw new Error(error.message || "No se pudo actualizar la venta");
     }
 };
 
