@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from 'cors';
 
 // Importar rutas
 import clientRoutes from "./routes/client.routes";
@@ -11,7 +12,18 @@ import subCategoryRoutes from "./routes/subcategory.routes";
 import saleRoutes from "./routes/sale.routes";
 import saleDetailRoutes from "./routes/saleDetail.routes";
 
+
 const app = express();
+
+
+app.use(cors({
+    origin: 'http://localhost:5174',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
+
+
+
 
 // Middleware
 app.use(express.json());
@@ -20,6 +32,8 @@ app.use(express.json());
 app.get("/", (_req, res) => {
     res.send("API funcionando 🚀");
 });
+
+
 
 // Rutas de la API
 app.use("/api/users", userRoutes);
@@ -30,6 +44,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/subcategories", subCategoryRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/salesDetails", saleDetailRoutes);
+
 
 // Puerto
 const PORT = process.env.PORT || 3000;
