@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import cors from 'cors';
 
 // Importar rutas
 import clientRoutes from "./routes/client.routes";
@@ -12,7 +13,15 @@ import saleRoutes from "./routes/sale.routes";
 import saleDetailRoutes from "./routes/saleDetail.routes";
 import billAddressRoutes from "./routes/billAddress.routes";
 
+
 const app = express();
+
+
+app.use(cors({
+    origin: 'http://localhost:5174',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
 
 // Middleware
 app.use(express.json());
@@ -32,6 +41,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/salesDetails", saleDetailRoutes);
 app.use("/api/billAddresses", billAddressRoutes);
+
 
 // Puerto
 const PORT = process.env.PORT || 3000;
