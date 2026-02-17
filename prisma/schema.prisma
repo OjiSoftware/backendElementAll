@@ -138,11 +138,11 @@ model Product {
   imageUrl    String   @map("img") @db.VarChar(255)
   stock       Int
 
-  subCategoryId Int?         @map("sub_categories_id")
-  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId Int         @map("sub_categories_id")
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  brandId Int?   @map("brand_id")
-  brand   Brand? @relation(fields: [brandId], references: [id])
+  brandId Int   @map("brand_id")
+  brand   Brand @relation(fields: [brandId], references: [id])
 
   saleDetails SaleDetails[]
 

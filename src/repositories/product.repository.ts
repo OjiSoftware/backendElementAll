@@ -13,6 +13,14 @@ export const findAllProducts = async (): Promise<ProductModel[]> => {
         return await prisma.product.findMany({
             where: { status: true },
             orderBy: { id: "asc" },
+            include: {
+                brand: true,
+                subCategory: {
+                    include: {
+                        category: true 
+                    }
+                }
+            },
         });
     } catch (error) {
         console.error("Error al obtener productos:", error);
@@ -32,6 +40,14 @@ export const findProductById = async (
     try {
         return await prisma.product.findUnique({
             where: { id },
+            include: {
+                brand: true,   
+                subCategory: { 
+                    include: {
+                        category: true,
+                    }
+                }
+            },
         });
     } catch (error) {
         console.error(`Error al buscar producto con id ${id}:`, error);

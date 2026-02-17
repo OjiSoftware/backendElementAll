@@ -6,7 +6,7 @@ export type CreateProductInput = {
     imageUrl: string;
     stock: number;
     brandId: number;
-    subCategoryId?: number;
+    subCategoryId: number;
     status?: boolean;
 };
 
