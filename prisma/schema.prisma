@@ -102,6 +102,7 @@ model Sale {
   id        Int        @id @default(autoincrement())
   createdAt DateTime   @default(now()) @map("created_at")
   status    SaleStatus @default(PENDING)
+  total     Decimal    @db.Decimal(10, 2)
 
   clientId Int    @map("client_id")
   client   Client @relation(fields: [clientId], references: [id])
@@ -132,7 +133,7 @@ model Product {
   name        String   @db.VarChar(100)
   description String   @db.VarChar(500)
   unit        String   @db.VarChar(50)
-  price       Decimal  @db.Decimal(12, 2)
+  price       Decimal
   status      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
   imageUrl    String   @map("img") @db.VarChar(255)
