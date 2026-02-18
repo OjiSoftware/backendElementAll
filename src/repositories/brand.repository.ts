@@ -19,8 +19,9 @@ export const findAllBrands = async (): Promise<BrandWithSubCategory[]> => {
     }
 };
 
-
-export const findBrandById = async (id: number): Promise<BrandWithSubCategory | null> => {
+export const findBrandById = async (
+    id: number,
+): Promise<BrandWithSubCategory | null> => {
     try {
         return await prisma.brand.findUnique({
             where: { id },
@@ -32,12 +33,18 @@ export const findBrandById = async (id: number): Promise<BrandWithSubCategory | 
     }
 };
 
-
 export const insertBrand = async (
-    data: CreateBrandInput
+    data: CreateBrandInput,
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
-        const brand = await prisma.brand.create({ data });
+        const brand = await prisma.brand.create({
+            data: {
+                name: data.name,
+                subCategory: {
+                    connect: { id: data.subCategoryId },
+                },
+            },
+        });
         return { message: "Marca creada con éxito", brand };
     } catch (error) {
         console.error("Error al crear marca:", error);
@@ -45,10 +52,9 @@ export const insertBrand = async (
     }
 };
 
-
 export const updateBrand = async (
     id: number,
-    data: UpdateBrandInput
+    data: UpdateBrandInput,
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
         const brand = await prisma.brand.update({ where: { id }, data });
@@ -60,7 +66,7 @@ export const updateBrand = async (
 };
 
 export const disableBrand = async (
-    id: number
+    id: number,
 ): Promise<{ message: string; brand: BrandModel }> => {
     try {
         const brand = await prisma.brand.update({
