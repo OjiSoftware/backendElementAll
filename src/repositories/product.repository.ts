@@ -17,7 +17,7 @@ export const findAllProducts = async (): Promise<ProductModel[]> => {
                 brand: true,
                 subCategory: {
                     include: {
-                        category: true 
+                        category: true
                     }
                 }
             },
@@ -41,8 +41,8 @@ export const findProductById = async (
         return await prisma.product.findUnique({
             where: { id },
             include: {
-                brand: true,   
-                subCategory: { 
+                brand: true,
+                subCategory: {
                     include: {
                         category: true,
                     }
@@ -85,9 +85,12 @@ export const updateProduct = async (
     data: UpdateProductInput,
 ): Promise<ProductModel | null> => {
     try {
+        // Desestructuramos para descartar cualquier campo extra que no se pueda actualizar
+        const { ...validData } = data;
+
         return await prisma.product.update({
             where: { id },
-            data,
+            data: validData,
         });
     } catch (error) {
         console.warn(

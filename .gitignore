@@ -1,8 +1,31 @@
+# node deps
 node_modules
+
+# env files
 .env
-/src/generated/prisma
-/src/generated/prisma
+.env.*
+*.local
+
+# build output
+dist
+build
+
+# prisma generated
+src/generated/prisma
+prisma/generated
+
+# logs
+logs
+*.log
+
+# system/editor
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# docker
 docker-compose.yml
-dockerfile
-Dockerfile
 .dockerignore
+Dockerfile
