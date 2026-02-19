@@ -1,3 +1,4 @@
+// src/repositories/brand.repository.ts
 import { prisma } from "../prisma";
 import { Brand as BrandModel, Prisma } from "../generated/prisma/client";
 import { CreateBrandInput, UpdateBrandInput } from "../types/brand.types";
@@ -6,6 +7,9 @@ type BrandWithSubCategory = Prisma.BrandGetPayload<{
     include: { subCategory: true };
 }>;
 
+/**
+ * Obtiene todas las marcas activas.
+ */
 export const findAllBrands = async (): Promise<BrandWithSubCategory[]> => {
     try {
         return await prisma.brand.findMany({
@@ -19,8 +23,12 @@ export const findAllBrands = async (): Promise<BrandWithSubCategory[]> => {
     }
 };
 
-
-export const findBrandById = async (id: number): Promise<BrandWithSubCategory | null> => {
+/**
+ * Busca una marca por su ID.
+ */
+export const findBrandById = async (
+    id: number,
+): Promise<BrandWithSubCategory | null> => {
     try {
         return await prisma.brand.findUnique({
             where: { id },
@@ -32,44 +40,54 @@ export const findBrandById = async (id: number): Promise<BrandWithSubCategory | 
     }
 };
 
-
+/**
+ * Inserta (crea) una nueva marca.
+ */
 export const insertBrand = async (
-    data: CreateBrandInput
-): Promise<{ message: string; brand: BrandModel }> => {
+    data: CreateBrandInput,
+): Promise<BrandModel> => {
     try {
-        const brand = await prisma.brand.create({ data });
-        return { message: "Marca creada con éxito", brand };
+        return await prisma.brand.create({
+            data: {
+                name: data.name,
+                subCategory: { connect: { id: data.subCategoryId } },
+            },
+        });
     } catch (error) {
         console.error("Error al crear marca:", error);
         throw new Error("No se pudo crear la marca");
     }
 };
 
-
+/**
+ * Actualiza los datos de una marca existente.
+ */
 export const updateBrand = async (
     id: number,
-    data: UpdateBrandInput
-): Promise<{ message: string; brand: BrandModel }> => {
+    data: UpdateBrandInput,
+): Promise<BrandModel | null> => {
     try {
-        const brand = await prisma.brand.update({ where: { id }, data });
-        return { message: "Marca actualizada con éxito", brand };
+        return await prisma.brand.update({
+            where: { id },
+            data,
+        });
     } catch (error) {
         console.warn(`Marca con id ${id} no encontrada o error:`, error);
-        throw new Error("No se pudo actualizar la marca");
+        return null;
     }
 };
 
-export const disableBrand = async (
-    id: number
-): Promise<{ message: string; brand: BrandModel }> => {
+/**
+ * Deshabilita una marca (soft delete).
+ */
+export const disableBrand = async (id: number): Promise<BrandModel | null> => {
     try {
-        const brand = await prisma.brand.update({
+        return await prisma.brand.update({
             where: { id },
             data: { status: false },
         });
-        return { message: "Marca deshabilitada con éxito", brand };
     } catch (error) {
-        console.warn(`Marca con id ${id} no encontrada:`, error);
-        throw new Error("No se pudo deshabilitar la marca");
+        console.warn(`Error al deshabilitar marca con id ${id}:`, error);
+        return null;
     }
 };

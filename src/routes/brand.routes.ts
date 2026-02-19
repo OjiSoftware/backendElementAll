@@ -8,6 +8,6 @@ router.get("/", brandController.getBrands);
 router.get("/:id", brandController.getBrand);
 router.post("/", brandController.createBrand);
 router.put("/:id", brandController.updateBrand);
-router.delete("/:id", brandController.deleteBrand);
+router.delete("/:id", brandController.disableBrand);
 
 export default router;

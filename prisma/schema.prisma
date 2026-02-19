@@ -102,6 +102,7 @@ model Sale {
   id        Int        @id @default(autoincrement())
   createdAt DateTime   @default(now()) @map("created_at")
   status    SaleStatus @default(PENDING)
+  total     Decimal    @db.Decimal(10, 2)
 
   clientId Int    @map("client_id")
   client   Client @relation(fields: [clientId], references: [id])
