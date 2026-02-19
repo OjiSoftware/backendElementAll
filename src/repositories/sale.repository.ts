@@ -13,7 +13,7 @@ import { CreateSaleInput, UpdateSaleInput } from "../types/sale.types";
 export const findAllSales = async (): Promise<SaleModel[]> => {
     try {
         return await prisma.sale.findMany({
-            include: { details: true },
+            include: { client: true, details: true },
             orderBy: { id: "desc" },
         });
     } catch (error) {
@@ -32,7 +32,9 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
     try {
         return await prisma.sale.findUnique({
             where: { id },
-            include: { details: true },
+            include: { 
+                client: true,
+                details: true },
         });
     } catch (error) {
         console.error(`Error al buscar venta con id ${id}:`, error);
