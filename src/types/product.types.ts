@@ -8,6 +8,7 @@ export type CreateProductInput = {
     brandId: number;
     subCategoryId: number;
     status?: boolean;
+    showingInCatalog?: boolean;
 };
 
 export type UpdateProductInput = {
@@ -20,4 +21,5 @@ export type UpdateProductInput = {
     brandId?: number;
     subCategoryId?: number;
     status?: boolean;
+    showingInCatalog?: boolean;
 };
