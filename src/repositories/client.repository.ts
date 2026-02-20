@@ -1,5 +1,6 @@
 import { prisma } from "../prisma";
 import { Client as ClientModel } from "../generated/prisma/client";
+import { BillAddress as BillAddressModel } from "../generated/prisma/client";
 import { CreateClientInput, UpdateClientInput } from "../types/client.types";
 
 /**
@@ -45,7 +46,21 @@ export const createClient = async (
     data: CreateClientInput,
 ): Promise<ClientModel> => {
     try {
-        return await prisma.client.create({ data });
+        const { addresses, ...clientData } = data;
+
+        const client = await prisma.client.create({
+            data: {
+                ...clientData,
+                addresses: {
+                    create: addresses
+                }
+            },
+            include: {
+                addresses: true,
+            }
+        });
+
+        return client;
     } catch (error) {
         console.error("Error al crear cliente:", error);
         throw new Error("No se pudo crear el cliente");
@@ -63,10 +78,25 @@ export const updateClient = async (
     data: UpdateClientInput,
 ): Promise<ClientModel | null> => {
     try {
-        return await prisma.client.update({
+        const { addresses, ...clientData } = data;
+
+        const client = await prisma.client.update({
             where: { id },
-            data,
+            data: {
+                ...clientData,
+                ...(addresses !== undefined ? {
+                    addresses: {
+                        deleteMany: {},
+                        create: addresses as any,
+                    }
+                } : {})
+            },
+            include: {
+                addresses: true,
+            }
         });
+
+        return client;
     } catch (error) {
         console.warn(
             `Cliente con id ${id} no encontrado o error al actualizar:`,

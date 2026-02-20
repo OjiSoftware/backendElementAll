@@ -6,6 +6,30 @@ export type CreateClientInput = {
     dni: string;
     phoneNumber: string;
     email: string;
+    addresses: {
+        street: string;
+        streetNum: number;
+        floor?: number;
+        apartment?: string;
+        locality: string;
+        province: string;
+        reference?: string;
+    }
 };
 
-export type UpdateClientInput = Partial<CreateClientInput>;
+export type UpdateClientInput = {
+    name?: string;
+    surname?: string;
+    dni?: string;
+    phoneNumber?: string;
+    email?: string;
+    addresses?: {
+        street?: string;
+        streetNum?: number;
+        floor?: number;
+        apartment?: string;
+        locality?: string;
+        province?: string;
+        reference?: string;
+    }
+};
