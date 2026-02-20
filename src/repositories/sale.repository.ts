@@ -32,9 +32,14 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
     try {
         return await prisma.sale.findUnique({
             where: { id },
-            include: { 
-                client: true,
-                details: true },
+            include: {
+                client: {
+                    include: {
+                        addresses: true
+                    }
+                },
+                details: true
+            },
         });
     } catch (error) {
         console.error(`Error al buscar venta con id ${id}:`, error);
@@ -70,7 +75,7 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                 });
 
                 const priceInCents = Math.round(Number(product.price) * 100);
-                
+
                 // Sumamos al total general
                 totalInCents += (priceInCents * item.quantity);
 
@@ -79,7 +84,7 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                     quantity: item.quantity,
                     unitaryPrice: product.price,
                 });
-            } 
+            }
 
             const finalTotal = totalInCents / 100;
 
@@ -179,7 +184,7 @@ export const updateSale = async (id: number, data: UpdateSaleInput): Promise<Sal
                     ...restData, // Insertamos cliente, status, etc.
                     total: newTotal,
                     details: {
-                        deleteMany: {}, 
+                        deleteMany: {},
                         create: newDetailsToCreate,
                     },
                 },
