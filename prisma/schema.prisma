@@ -34,9 +34,9 @@ model Client {
   id          Int           @id @default(autoincrement())
   name        String        @db.VarChar(50)
   surname     String        @db.VarChar(50)
-  dni         String        @unique @db.VarChar(8)
-  phoneNumber String        @unique @map("phone_number") @db.VarChar(20)
-  email       String        @unique @db.VarChar(100)
+  dni         String        @db.VarChar(8)
+  phoneNumber String        @map("phone_number") @db.VarChar(20)
+  email       String        @db.VarChar(100)
   sales       Sale[]
   addresses   BillAddress[]
 
