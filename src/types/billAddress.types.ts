@@ -6,6 +6,7 @@ export type CreateBillAddressInput = {
   locality: string;
   province: string;
   reference?: string;
+  clientId: number;
 };
 
 export type UpdateBillAddressInput = {
