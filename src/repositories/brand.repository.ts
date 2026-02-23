@@ -3,19 +3,17 @@ import { prisma } from "../prisma";
 import { Brand as BrandModel, Prisma } from "../generated/prisma/client";
 import { CreateBrandInput, UpdateBrandInput } from "../types/brand.types";
 
-type BrandWithSubCategory = Prisma.BrandGetPayload<{
-    include: { subCategory: true };
-}>;
+
 
 /**
  * Obtiene todas las marcas activas.
  */
-export const findAllBrands = async (): Promise<BrandWithSubCategory[]> => {
+export const findAllBrands = async (): Promise<BrandModel[]> => {
     try {
         return await prisma.brand.findMany({
             where: { status: true },
             orderBy: { id: "asc" },
-            include: { subCategory: true },
+            /*             include: { subCategory: true }, */
         });
     } catch (error) {
         console.error("Error al obtener marcas:", error);
@@ -28,11 +26,11 @@ export const findAllBrands = async (): Promise<BrandWithSubCategory[]> => {
  */
 export const findBrandById = async (
     id: number,
-): Promise<BrandWithSubCategory | null> => {
+): Promise<BrandModel | null> => {
     try {
         return await prisma.brand.findUnique({
             where: { id },
-            include: { subCategory: true },
+            /*             include: { subCategory: true }, */
         });
     } catch (error) {
         console.error(`Error al buscar marca con id ${id}:`, error);
@@ -50,7 +48,7 @@ export const insertBrand = async (
         return await prisma.brand.create({
             data: {
                 name: data.name,
-                subCategory: { connect: { id: data.subCategoryId } },
+                /*                 subCategory: { connect: { id: data.subCategoryId } },  */
             },
         });
     } catch (error) {

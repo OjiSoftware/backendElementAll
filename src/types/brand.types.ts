@@ -1,6 +1,6 @@
 export type CreateBrandInput = {
     name: string;
-    subCategoryId: number;
+    /*   subCategoryId: number; */
 };
 
 export type UpdateBrandInput = Partial<CreateBrandInput> & {
