@@ -77,3 +77,18 @@ export const disableCategory = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error al desactivar la categoría" });
     }
 };
+
+
+export const getCategoriesWithSub = async (_req: Request, res: Response) => {
+    try {
+        const result = await categoryService.getCategoriesWithSubcategories()
+
+        res.json(result)
+    } catch (error: any) {
+        if (error.message === "Categoría no encontrada con getCategoriesWithSub") {
+            return res.status(500).json({ message: error.message });
+        }
+        res.status(500).json({ message: "Error al filtrar la categoría" });
+
+    }
+}

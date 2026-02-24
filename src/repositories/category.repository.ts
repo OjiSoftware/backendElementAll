@@ -101,4 +101,26 @@ export const disableCategory = async (
         );
         return null;
     }
+
+
+
+};
+
+
+export const findCategoriesWithSub = async () => {
+    try {
+        return await prisma.category.findMany({
+            where: { status: true },
+            include: {
+
+                subCategories: {
+                    where: { status: true }
+                }
+            },
+            orderBy: { id: "asc" },
+        });
+    } catch (error) {
+        console.error("Error al obtener árbol de categorías:", error);
+        throw new Error("Error en la base de datos");
+    }
 };

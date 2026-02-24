@@ -87,3 +87,9 @@ export const disableCategory = async (
         category,
     };
 };
+
+export const getCategoriesWithSubcategories = async () => {
+    const categoryWithSub = await categoryRepo.findCategoriesWithSub()
+
+    return categoryWithSub
+}
