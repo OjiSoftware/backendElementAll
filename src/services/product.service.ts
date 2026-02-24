@@ -86,3 +86,8 @@ export const disableProduct = async (
         product: deleted,
     };
 };
+
+
+export const getCatalogProducts = async (): Promise<ProductModel[]> => {
+    return await productRepo.findCatalogProducts()
+}

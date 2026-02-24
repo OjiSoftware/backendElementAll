@@ -77,3 +77,16 @@ export const disableProduct = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Error al eliminar el producto" });
     }
 };
+
+
+export const getCatalog = async (_req: Request, res: Response) => {
+    try {
+
+        const result = await productService.getCatalogProducts()
+
+        return res.json(result)
+    } catch (error) {
+        console.log("Error en getCatalog en el controller", error)
+        res.status(500).json({ message: "Algo salio mal en el controller" })
+    }
+}

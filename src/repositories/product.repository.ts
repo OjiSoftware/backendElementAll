@@ -122,3 +122,26 @@ export const disableProduct = async (
         throw new Error("No se pudo eliminar el producto");
     }
 };
+
+
+export const findCatalogProducts = async (): Promise<ProductModel[]> => {
+    try {
+        return await prisma.product.findMany({
+            where: { status: true, showingInCatalog: true },
+            include: {
+                brand: true,
+                subCategory: {
+                    include: {
+                        category: true,
+                    }
+                }
+            },
+        })
+
+    } catch (error) {
+        console.log("Hubo un errror en findCatalogProducts ", error)
+        throw new Error("No se pudieron traer los datos de findCatalogProducts")
+    }
+};
+
+
