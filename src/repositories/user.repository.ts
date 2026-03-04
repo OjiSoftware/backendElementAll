@@ -86,3 +86,55 @@ export const deleteUser = async (id: number): Promise<User | null> => {
         return null;
     }
 };
+
+/**
+ * Obtiene un usuario por su email.
+ * @param email - Correo del usuario a buscar
+ * @returns Usuario encontrado o null si no existe
+ */
+export const findUserByEmail = async (email: string): Promise<User | null> => {
+    try {
+        return await prisma.user.findUnique({
+            where: { email },
+        });
+    } catch (error) {
+        console.error(`Error al buscar usuario por email ${email}:`, error);
+        throw new Error("No se pudo buscar el usuario");
+    }
+};
+
+/**
+ * Guarda el token de recuperación en el usuario
+ */
+export const saveResetToken = async (userId: number, token: string, expiresAt: Date) => {
+    return await prisma.user.update({
+        where: { id: userId },
+        data: {
+            resetToken: token,
+            resetTokenExpires: expiresAt,
+        },
+    });
+};
+
+/**
+ * Busca un usuario usando su token de recuperación
+ */
+export const findUserByResetToken = async (token: string) => {
+    return await prisma.user.findUnique({
+        where: { resetToken: token },
+    });
+};
+
+/**
+ * Actualiza la contraseña y borra el token de recuperación
+ */
+export const updatePasswordAndClearToken = async (userId: number, newHashedPassword: string) => {
+    return await prisma.user.update({
+        where: { id: userId },
+        data: {
+            password: newHashedPassword,
+            resetToken: null,
+            resetTokenExpires: null,
+        },
+    });
+};

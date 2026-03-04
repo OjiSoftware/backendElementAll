@@ -21,11 +21,15 @@ enum SaleStatus {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  email     String   @unique @db.VarChar(100)
-  password  String   @db.VarChar(255)
-  name      String   @db.VarChar(50)
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now())
+  email             String    @unique @db.VarChar(100)
+  password          String    @db.VarChar(255)
+  name              String    @db.VarChar(50)
+
+  // Nuevos campos para la recuperación de contraseña
+  resetToken        String?   @unique @db.VarChar(255)
+  resetTokenExpires DateTime?
 
   @@map("user")
 }

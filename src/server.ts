@@ -1,8 +1,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from 'cors';
+import cookieParser from "cookie-parser";
 
 // Importar rutas
+import authRoutes from "./routes/auth.routes";
 import clientRoutes from "./routes/client.routes";
 import userRoutes from "./routes/user.routes";
 import brandRoutes from "./routes/brand.routes";
@@ -15,14 +17,17 @@ import billAddressRoutes from "./routes/billAddress.routes";
 
 const app = express();
 
-app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-}));
+app.use(
+    cors({
+        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true,
+    }),
+);
 
-// Middleware
+// Middlewares
 app.use(express.json());
+app.use(cookieParser());
 
 // Ruta principal
 app.get("/", (_req, res) => {
@@ -30,6 +35,7 @@ app.get("/", (_req, res) => {
 });
 
 // Rutas de la API
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/categories", categoryRoutes);

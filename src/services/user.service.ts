@@ -1,4 +1,5 @@
 // src/services/user.service.ts
+import bcrypt from "bcryptjs";
 import * as repo from "../repositories/user.repository";
 import { CreateUserInput, UpdateUserInput } from "../types/user.types";
 import { User } from "../generated/prisma/client";
@@ -37,11 +38,25 @@ export const listUsers = async (): Promise<User[]> => {
  */
 export const createUser = async (
     data: CreateUserInput,
-): Promise<{ message: string; user: User }> => {
-    const user = await repo.createUser(data);
+): Promise<{ message: string; user: Partial<User> }> => {
+    // 1. Hashear la contraseña (10 saltos es el estándar seguro)
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // 2. Reemplazar la contraseña plana por la encriptada
+    const userData = {
+        ...data,
+        password: hashedPassword,
+    };
+
+    // 3. Crear el usuario
+    const user = await repo.createUser(userData);
+
+    // 4. Omitir la contraseña en la respuesta
+    const { password: _, ...userWithoutPassword } = user;
+
     return {
         message: "Usuario creado con éxito",
-        user,
+        user: userWithoutPassword,
     };
 };
 
