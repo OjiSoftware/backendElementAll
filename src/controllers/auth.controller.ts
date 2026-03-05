@@ -68,11 +68,9 @@ export const resetPassword = async (req: Request, res: Response) => {
         const { token, newPassword } = req.body;
 
         if (!token || !newPassword) {
-            return res
-                .status(400)
-                .json({
-                    error: "El token y la nueva contraseña son obligatorios.",
-                });
+            return res.status(400).json({
+                error: "El token y la nueva contraseña son obligatorios.",
+            });
         }
 
         await authService.resetPassword(token, newPassword);
@@ -109,5 +107,24 @@ export const getMe = async (req: AuthRequest, res: Response) => {
         res.status(200).json(safeUser);
     } catch (e: any) {
         res.status(500).json({ error: "Error al obtener el perfil" });
+    }
+};
+
+export const verifyResetToken = async (req: Request, res: Response) => {
+    const token = req.params.token as string;
+
+    try {
+        const user = await userRepo.findUserByResetToken(token);
+
+        if (!user) {
+            return res.status(400).json({
+                error: "El enlace es inválido o ya ha expirado.",
+            });
+        }
+
+        return res.status(200).json({ message: "Token válido" });
+    } catch (error) {
+        console.error("Error en verifyResetToken:", error);
+        res.status(500).json({ error: "Error al verificar el token" });
     }
 };

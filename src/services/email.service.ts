@@ -12,30 +12,49 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendPasswordResetEmail = async (to: string, token: string) => {
-    // Usamos el prefijo /auth/ para mantener la estructura que definimos en React
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
+    const resetUrl = `${baseUrl}/auth/reset/${token}`;
 
     const mailOptions = {
         from: `"ElementAll" <${process.env.EMAIL_USER}>`,
         to,
-        subject: "Recuperación de Contraseña - ElementAll",
+        subject: "Recuperación de contraseña - ElementAll",
         html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
-                <h2 style="color: #1e40af;">¿Olvidaste tu contraseña?</h2>
-                <p>Recibimos una solicitud para restablecer tu contraseña en <strong>ElementAll</strong>.</p>
-                <p>Haz clic en el siguiente botón para crear una nueva:</p>
-                <div style="text-align: center; margin: 30px 0;">
+            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; padding: 40px; border: 1px solid #e5e7eb; border-radius: 8px; color: #1f2937; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #4f46e5; margin: 0; font-size: 28px; letter-spacing: -0.5px;">ElementAll</h1>
+                    <p style="color: #6366f1; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 5px 0 0 0; letter-spacing: 2px;">
+                        Gestión Empresarial Integral
+                    </p>
+                </div>
+
+                <h2 style="color: #111827; font-size: 22px; text-align: center; margin-top: 0;">¿Olvidaste tu contraseña?</h2>
+
+                <p style="font-size: 16px; line-height: 1.5; color: #4b5563; text-align: center;">
+                    Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>ElementAll</strong>.
+                </p>
+
+                <div style="text-align: center; margin: 35px 0;">
                     <a href="${resetUrl}"
-                      style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                      Restablecer Contraseña
+                      style="background-color: #4f46e5; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                      Restablecer contraseña
                     </a>
                 </div>
-                <p style="font-size: 0.9em; color: #666;">
-                    <em>Este enlace expirará en 15 minutos por tu seguridad. Si no solicitaste este cambio, puedes ignorar este correo.</em>
+
+                <p style="font-size: 14px; color: #6b7280; text-align: center;">
+                    Este enlace expirará en <strong>15 minutos</strong> por motivos de seguridad.<br>
+                    Si no solicitaste este cambio, podés ignorar este correo tranquilamente.
                 </p>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 0.8em; color: #999; text-align: center;">© 2026 ElementAll ERP</p>
+
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #f3f4f6; text-align: center;">
+                    <p style="font-size: 12px; color: #9ca3af;">
+                        Si tenés problemas con el botón, copiá y pegá este enlace:<br>
+                        <span style="color: #4f46e5;">${resetUrl}</span>
+                    </p>
+                    <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+                        © 2026 OjiSoftware • ElementAll ERP
+                    </p>
+                </div>
             </div>
         `,
     };

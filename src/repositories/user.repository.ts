@@ -106,7 +106,11 @@ export const findUserByEmail = async (email: string): Promise<User | null> => {
 /**
  * Guarda el token de recuperación en el usuario
  */
-export const saveResetToken = async (userId: number, token: string, expiresAt: Date) => {
+export const saveResetToken = async (
+    userId: number,
+    token: string,
+    expiresAt: Date,
+) => {
     return await prisma.user.update({
         where: { id: userId },
         data: {
@@ -120,15 +124,24 @@ export const saveResetToken = async (userId: number, token: string, expiresAt: D
  * Busca un usuario usando su token de recuperación
  */
 export const findUserByResetToken = async (token: string) => {
-    return await prisma.user.findUnique({
-        where: { resetToken: token },
+    return await prisma.user.findFirst({
+        where: {
+            resetToken: token,
+            resetTokenExpires: {
+                // 👈 Usamos el nombre exacto de tu esquema
+                gt: new Date(), // Debe ser mayor a la fecha actual (no expirado)
+            },
+        },
     });
 };
 
 /**
  * Actualiza la contraseña y borra el token de recuperación
  */
-export const updatePasswordAndClearToken = async (userId: number, newHashedPassword: string) => {
+export const updatePasswordAndClearToken = async (
+    userId: number,
+    newHashedPassword: string,
+) => {
     return await prisma.user.update({
         where: { id: userId },
         data: {
