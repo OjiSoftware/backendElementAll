@@ -61,23 +61,34 @@ export const recoverPassword = async (email: string) => {
 };
 
 export const resetPassword = async (token: string, newPassword: string) => {
-    // 1. Buscar al usuario por el token
+    // 1. Validación de integridad (Espejo del frontend)
+    // Limpiamos espacios y verificamos longitud mínima
+    const cleanPassword = newPassword.trim();
+    if (cleanPassword.length < 6) {
+        throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    }
+
+    // 2. Buscar al usuario por el token
     const user = await userRepo.findUserByResetToken(token);
 
     if (!user) {
         throw new Error("Token inválido o expirado");
     }
 
-    // 2. Verificar que el token no haya expirado
-    if (!user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+    // 3. Verificar que el token no haya expirado
+    // (Aseguramos que la comparación de fechas sea precisa)
+    if (
+        !user.resetTokenExpires ||
+        new Date(user.resetTokenExpires) < new Date()
+    ) {
         throw new Error(
             "El enlace de recuperación ha expirado. Solicita uno nuevo.",
         );
     }
 
-    // 3. Hashear la nueva contraseña
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // 4. Hashear la nueva contraseña (usamos la limpia)
+    const hashedPassword = await bcrypt.hash(cleanPassword, 10);
 
-    // 4. Actualizar la base de datos (borrando el token)
+    // 5. Actualizar la base de datos (borrando el token)
     await userRepo.updatePasswordAndClearToken(user.id, hashedPassword);
 };

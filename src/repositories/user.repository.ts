@@ -121,33 +121,43 @@ export const saveResetToken = async (
 };
 
 /**
- * Busca un usuario usando su token de recuperación
+ * Busca un usuario usando su token de recuperación.
+ * Solo devuelve el usuario si el token coincide y NO ha expirado.
  */
-export const findUserByResetToken = async (token: string) => {
-    return await prisma.user.findFirst({
-        where: {
-            resetToken: token,
-            resetTokenExpires: {
-                // 👈 Usamos el nombre exacto de tu esquema
-                gt: new Date(), // Debe ser mayor a la fecha actual (no expirado)
+export const findUserByResetToken = async (token: string): Promise<User | null> => {
+    try {
+        return await prisma.user.findFirst({
+            where: {
+                resetToken: token,
+                resetTokenExpires: {
+                    gt: new Date(), // "Greater Than": El token sigue siendo válido
+                },
             },
-        },
-    });
+        });
+    } catch (error) {
+        console.error(`Error al buscar usuario por resetToken:`, error);
+        throw new Error("Error en la base de datos al validar el token");
+    }
 };
 
 /**
- * Actualiza la contraseña y borra el token de recuperación
+ * Actualiza la contraseña y borra el token de recuperación de forma atómica.
  */
 export const updatePasswordAndClearToken = async (
     userId: number,
     newHashedPassword: string,
-) => {
-    return await prisma.user.update({
-        where: { id: userId },
-        data: {
-            password: newHashedPassword,
-            resetToken: null,
-            resetTokenExpires: null,
-        },
-    });
+): Promise<User> => {
+    try {
+        return await prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: newHashedPassword,
+                resetToken: null,
+                resetTokenExpires: null,
+            },
+        });
+    } catch (error) {
+        console.error(`Error al actualizar password para usuario ${userId}:`, error);
+        throw new Error("No se pudo actualizar la contraseña");
+    }
 };
