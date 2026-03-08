@@ -5,6 +5,7 @@ import { verifyToken } from "../middlewares/auth.middleware";
 const router = Router();
 
 router.post("/login", controller.loginUser);
+router.post("/register", controller.registerUser);
 router.post("/logout", controller.logoutUser);
 router.post("/recover-password", controller.recoverPassword);
 router.post("/reset-password", controller.resetPassword);

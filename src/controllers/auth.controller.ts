@@ -128,3 +128,31 @@ export const verifyResetToken = async (req: Request, res: Response) => {
         res.status(500).json({ error: "Error al verificar el token" });
     }
 };
+
+export const registerUser = async (req: Request, res: Response) => {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res
+                .status(400)
+                .json({
+                    error: "Nombre, email y contraseña son obligatorios.",
+                });
+        }
+
+        const newUser = await authService.register({ name, email, password });
+
+        res.status(201).json({
+            message: "Usuario creado con éxito",
+            user: newUser,
+        });
+    } catch (e: any) {
+        // Si el error es de "correo ya registrado", devolvemos un 400 (Bad Request)
+        const status =
+            e.message === "El correo electrónico ya está registrado."
+                ? 400
+                : 500;
+        res.status(status).json({ error: e.message });
+    }
+};

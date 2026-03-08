@@ -92,3 +92,33 @@ export const resetPassword = async (token: string, newPassword: string) => {
     // 5. Actualizar la base de datos (borrando el token)
     await userRepo.updatePasswordAndClearToken(user.id, hashedPassword);
 };
+
+export const register = async (userData: any) => {
+    const { name, email, password } = userData;
+
+    // 1. Verificar si el email ya existe
+    const existingUser = await userRepo.findUserByEmail(email);
+    if (existingUser) {
+        throw new Error("El correo electrónico ya está registrado.");
+    }
+
+    // 2. Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 3. Crear el usuario en la BD (Asegurate de tener createUser en userRepo)
+    const newUser = await userRepo.createUser({
+        name,
+        email,
+        password: hashedPassword,
+    });
+
+    // 4. Limpiamos datos sensibles antes de devolver al controller
+    const {
+        password: _,
+        resetToken: __,
+        resetTokenExpires: ___,
+        ...safeUser
+    } = newUser;
+
+    return safeUser;
+};
