@@ -18,20 +18,7 @@
 
 3. Configurar variables de entorno en un archivo `.env`:
 
-  MYSQL_ROOT_PASSWORD=root
-  MYSQL_DATABASE=elementall
-  MYSQL_USER=app
-  MYSQL_PASSWORD=app
-
-  PORT=3000
-
-  DATABASE_HOST=mysql
-  DATABASE_PORT=3306
-  DATABASE_USER=app
-  DATABASE_PASSWORD=app
-  DATABASE_NAME=elementall
-
-  DATABASE_URL="mysql://app:app@mysql:3306/elementall"
+  Utilizar el archivo .env.example para guiarse.
 
 
 4. Levantar base de datos y backend con Docker Compose:
