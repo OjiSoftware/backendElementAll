@@ -20,7 +20,6 @@
 
   Utilizar el archivo .env.example para guiarse.
 
-
 4. Levantar base de datos y backend con Docker Compose:
 
   docker compose down -v
@@ -33,6 +32,7 @@
 6. Sincronizar el schema de Prisma con la base de datos:
 
   npx prisma db push
+  npx prisma generate
 
 ## Uso de la API
 
@@ -74,8 +74,6 @@ Frontend recibe respuesta
 - Controllers: usar `req.body` para creación/modificación y `req.params`/`req.query` para IDs o filtros.
 - Devolver datos: `res.json()`.
 - Errores: `res.status(código).json({ error: "Mensaje" })`.
-
-
 
 ## A TENER EN CUENTA
 - Chequear que el carrito se guarde en localstorage pero verifique los datos con el backend para seguridad. Sino hacer que
