@@ -1,56 +1,80 @@
+# Eficen 360 - Backend
 
-Metodos de uso para la api(usenlos para peticiones, creates, updates, etc)
-Método	    Uso
-GET	        Obtener datos
-POST	    Crear datos
-PUT	        Actualizar datos
-PATCH	    Actualizar parcialmente
-DELETE	    Eliminar datos
+## Requisitos
 
+- Node.js >= 18
+- Docker y Docker Compose
+- Prisma 7.3
 
+## Instalación y configuración
 
-Orden para hacer el back
-1. Route      => conectamos el controller con express, lo usamos de puente digamos.
-2. Controller => Recibe la request del frontend, llama al service y responde al modulo (cliente, producto, etc). Basicamente es donde se manejan errores y decidimos qué código HTTP devolver
-3. Service    => lógica de negocio (que se hace con los datos antes o despues de que se guarden)
-4. Repository => solo buscamos interactuar con la bd. "Es la única capa que "sabe" dónde están los datos."
-5. Server => ultimo paso, agregar al server.ts la ruta del modulo correspondiente
+1. Instalar dependencias:
 
-Como funciona el route:
-URL + método HTTP → función que se ejecuta
-(GET /api/client/5)
+  npm install
 
+2. Generar Prisma Client:
 
+  npx prisma generate
 
-esto me lo hzio gpt esta bueno para entender como es el orden de trebajo cuando se hace una peticiones
+3. Configurar variables de entorno en un archivo `.env`:
+
+  Utilizar el archivo .env.example para guiarse.
+
+4. Levantar base de datos y backend con Docker Compose:
+
+  docker compose down -v
+  docker compose up --build
+
+5. Acceder al contenedor del backend en otra terminal(si necesitás ejecutar comandos dentro):
+
+  docker exec -it elementall_backend sh
+
+6. Sincronizar el schema de Prisma con la base de datos:
+
+  npx prisma db push
+  npx prisma generate
+
+## Uso de la API
+
+| Método | Uso                        |
+|--------|----------------------------|
+| GET    | Obtener datos              |
+| POST   | Crear datos                |
+| PUT    | Actualizar datos           |
+| PATCH  | Actualizar parcialmente    |
+| DELETE | Eliminar datos             |
+
+## Flujo de trabajo del backend
 
 Frontend
    |
    v
-Routes (router.put("/:id", controller.updateClient))
+Routes (conectan URL y método HTTP con controller)
    |
    v
-Controller (recibe req.body, llama al service)
+Controller (recibe req, llama al service y devuelve res)
    |
    v
-Service (valida reglas de negocio, llama repository)
+Service (aplica reglas de negocio y llama al repository)
    |
    v
-Repository (actualiza DB)
+Repository (interactúa directamente con la base de datos)
    |
    v
-Service (retorna cliente actualizado)
+Service (retorna datos procesados)
    |
    v
-Controller (res.json(cliente))
+Controller (res.json(datos))
    |
    v
 Frontend recibe respuesta
 
+## Notas
 
-Controller:
-Siempre que crees o modifiques datos, tomas la información de req.body.
-Siempre que necesites un ID o un filtro, tomas de req.params o req.query.
+- Controllers: usar `req.body` para creación/modificación y `req.params`/`req.query` para IDs o filtros.
+- Devolver datos: `res.json()`.
+- Errores: `res.status(código).json({ error: "Mensaje" })`.
 
-Siempre que quieras devolver datos: res.json().
-Siempre que quieras indicar error: res.status(404).json({error: "No encontrado"}).
+## A TENER EN CUENTA
+- Chequear que el carrito se guarde en localstorage pero verifique los datos con el backend para seguridad. Sino hacer que
+el stock se modifique solamente al checkout y la venta se cree al iniciar carrito.
