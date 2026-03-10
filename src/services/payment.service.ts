@@ -1,11 +1,9 @@
 import { MercadoPagoConfig, Preference } from "mercadopago";
 
-// Inicializamos el cliente con el token de tu .env
 const client = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN || "",
 });
 
-// Interfaz para tipar los items que recibe el servicio y ayudar a TypeScript
 export interface PaymentItem {
     id: string | number;
     title: string;
@@ -16,9 +14,9 @@ export interface PaymentItem {
 export class PaymentService {
     /**
      * Crea la preferencia de pago en Mercado Pago
-     * @param items - Lista de productos mapeados desde el frontend
-     * @param externalReference - ID de la venta en ElementAll
-     * @param payerEmail - (Opcional) Email del cliente para el recibo de MP
+     * @param items - Lista de productos mapeados
+     * @param externalReference - ID de la venta en la DB
+     * @param payerEmail - (Opcional) Email del cliente
      */
     async createPreference(
         items: PaymentItem[],
@@ -27,38 +25,34 @@ export class PaymentService {
     ) {
         try {
             const preference = new Preference(client);
-
-            const frontendUrl =
-                process.env.FRONTEND_URL || "http://localhost:5173";
+            const frontendUrl = (
+                process.env.FRONTEND_URL || "http://localhost:5173"
+            ).replace(/\/$/, "");
 
             const body: any = {
                 items: items.map((item) => ({
                     id: item.id.toString(),
                     title: item.title,
-                    unit_price: Number(item.unit_price.toFixed(2)), // Redondeo por seguridad con decimales
+                    unit_price: Number(item.unit_price.toFixed(2)),
                     quantity: Number(item.quantity),
                     currency_id: "ARS",
                 })),
                 payer: payerEmail ? { email: payerEmail } : undefined,
+
                 back_urls: {
-                    success: `${frontendUrl}/management/sales?status=success`,
-                    failure: `${frontendUrl}/management/sales?status=failure`,
-                    pending: `${frontendUrl}/management/sales?status=pending`,
+                    success: `${frontendUrl}/checkout/status`,
+                    failure: `${frontendUrl}/checkout/status`,
+                    pending: `${frontendUrl}/checkout/status`,
                 },
-                //auto_return: "approved",
-                binary_mode: true, // Clave: evita pagos "pendientes" eternos en cajeros o rapipago si querés todo digital
+
+                // auto_return: "approved",
+
+                binary_mode: true,
                 external_reference: externalReference,
                 statement_descriptor: "ElementAll",
-                // 🚀 La URL de tu webhook (VITAL para que ngrok y tu servidor reciban el aviso)
-                notification_url: process.env.BACKEND_TUNNEL_URL
-                    ? `${process.env.BACKEND_TUNNEL_URL}/api/payments/webhook`
-                    : undefined,
-            };
 
-            console.log(
-                "🚀 BODY QUE SE ENVÍA A MP:",
-                JSON.stringify(body, null, 2),
-            );
+                notification_url: `${process.env.BACKEND_TUNNEL_URL}/api/payments/webhook`,
+            };
 
             const response = await preference.create({ body });
 

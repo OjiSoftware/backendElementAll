@@ -85,3 +85,30 @@ export const disableSale = async (
         sale,
     };
 };
+
+/**
+ * Crea una venta desde el carrito público (Guest Checkout)
+ * @param clientData - Datos del formulario del cliente
+ * @param items - Productos del carrito
+ * @param total - Monto total
+ * @returns La venta creada con su ID para Mercado Pago
+ */
+export const createGuestSale = async (
+    clientData: any,
+    items: any[],
+    total: number
+): Promise<{ message: string; sale: SaleModel }> => {
+
+    // Validaciones extra de negocio podrían ir acá antes de tocar la DB
+    if (!clientData.dni || items.length === 0) {
+        throw new Error("Faltan datos obligatorios para crear la orden");
+    }
+
+    // Delegamos la operación de base de datos al Repositorio
+    const sale = await saleRepo.insertGuestSale(clientData, items, total);
+
+    return {
+        message: "Orden de invitado creada con éxito",
+        sale,
+    };
+};

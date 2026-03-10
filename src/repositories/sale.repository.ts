@@ -1,9 +1,10 @@
 // src/repositories/sale.repository.ts
 import { prisma } from "../prisma";
-import { Sale as SaleModel, SaleDetails as SaleDetailsModel } from "../generated/prisma/client";
+import {
+    Sale as SaleModel,
+    SaleDetails as SaleDetailsModel,
+} from "../generated/prisma/client";
 import { CreateSaleInput, UpdateSaleInput } from "../types/sale.types";
-
-
 
 /**
  * Obtiene todas las ventas de la base de datos.
@@ -35,10 +36,10 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
             include: {
                 client: {
                     include: {
-                        addresses: true
-                    }
+                        addresses: true,
+                    },
                 },
-                details: true
+                details: true,
             },
         });
     } catch (error) {
@@ -48,7 +49,8 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
 };
 
 /**
- * Crea una nueva venta en la base de datos.
+ * Crea una nueva venta manual desde el panel de administración.
+ * Descuenta el stock de forma inmediata.
  * @param data - Objeto con los datos de la venta y sus detalles.
  * @returns Venta recién creada.
  * @throws Error si falla la inserción.
@@ -61,13 +63,17 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
 
             for (const item of data.details) {
                 const product = await tx.product.findUnique({
-                    where: { id: item.productId }
+                    where: { id: item.productId },
                 });
                 if (!product) {
-                    throw new Error(`Producto con ID ${item.productId} no encontrado`);
+                    throw new Error(
+                        `Producto con ID ${item.productId} no encontrado`,
+                    );
                 }
                 if (product.stock < item.quantity) {
-                    throw new Error(`Stock insuficiente para el producto: ${product.name}`);
+                    throw new Error(
+                        `Stock insuficiente para el producto: ${product.name}`,
+                    );
                 }
                 await tx.product.update({
                     where: { id: item.productId },
@@ -77,7 +83,7 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                 const priceInCents = Math.round(Number(product.price) * 100);
 
                 // Sumamos al total general
-                totalInCents += (priceInCents * item.quantity);
+                totalInCents += priceInCents * item.quantity;
 
                 detailsWithPrices.push({
                     productId: item.productId,
@@ -112,13 +118,16 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
  * @param data - Datos a actualizar.
  * @returns Venta actualizada o null si no existe.
  */
-export const updateSale = async (id: number, data: UpdateSaleInput): Promise<SaleModel | null> => {
+export const updateSale = async (
+    id: number,
+    data: UpdateSaleInput,
+): Promise<SaleModel | null> => {
     try {
         return await prisma.$transaction(async (tx) => {
             // 1. Obtener la venta original
             const existingSale = await tx.sale.findUnique({
                 where: { id },
-                include: { details: true }
+                include: { details: true },
             });
 
             if (!existingSale) {
@@ -141,7 +150,7 @@ export const updateSale = async (id: number, data: UpdateSaleInput): Promise<Sal
             for (const oldItem of existingSale.details) {
                 await tx.product.update({
                     where: { id: oldItem.productId },
-                    data: { stock: { increment: oldItem.quantity } }
+                    data: { stock: { increment: oldItem.quantity } },
                 });
             }
 
@@ -151,24 +160,28 @@ export const updateSale = async (id: number, data: UpdateSaleInput): Promise<Sal
             // 4. Validar nuevos detalles, descontar stock y calcular nuevo total
             for (const item of details) {
                 const product = await tx.product.findUnique({
-                    where: { id: item.productId }
+                    where: { id: item.productId },
                 });
 
                 item.quantity = item.quantity ?? 0;
 
                 if (!product) {
-                    throw new Error(`Producto con ID ${item.productId} no encontrado`);
+                    throw new Error(
+                        `Producto con ID ${item.productId} no encontrado`,
+                    );
                 }
                 if (product.stock < item.quantity) {
-                    throw new Error(`Stock insuficiente para el producto: ${product.name}`);
+                    throw new Error(
+                        `Stock insuficiente para el producto: ${product.name}`,
+                    );
                 }
 
                 await tx.product.update({
                     where: { id: item.productId },
-                    data: { stock: { decrement: item.quantity } }
+                    data: { stock: { decrement: item.quantity } },
                 });
 
-                newTotal = newTotal + (Number(product.price) * item.quantity);
+                newTotal = newTotal + Number(product.price) * item.quantity;
 
                 newDetailsToCreate.push({
                     productId: item.productId,
@@ -210,7 +223,92 @@ export const disableSale = async (id: number): Promise<SaleModel | null> => {
             include: { details: true },
         });
     } catch (error) {
-        console.warn(`Venta con id ${id} no encontrada o error al deshabilitar:`, error);
+        console.warn(
+            `Venta con id ${id} no encontrada o error al deshabilitar:`,
+            error,
+        );
         throw new Error("No se pudo deshabilitar la venta");
+    }
+};
+
+/**
+ * Crea una orden pendiente desde el carrito público (Guest Checkout).
+ * NO descuenta stock, ya que eso se delega al webhook de Mercado Pago una vez aprobado.
+ * @param clientData - Datos del formulario del cliente.
+ * @param items - Productos del carrito.
+ * @param total - Monto total calculado.
+ * @returns Venta creada en estado PENDING.
+ * @throws Error si falla la operación en base de datos.
+ */
+/**
+ * Crea una orden pendiente desde el carrito público (Guest Checkout).
+ * NO descuenta stock, ya que eso se delega al webhook de Mercado Pago.
+ */
+export const insertGuestSale = async (
+    clientData: any,
+    items: any[],
+    total: number,
+): Promise<SaleModel> => {
+    try {
+        return await prisma.$transaction(async (tx) => {
+            // 1. Buscamos o creamos al cliente
+            const client = await tx.client.upsert({
+                where: { dni: clientData.dni },
+                update: {
+                    name: clientData.name,
+                    surname: clientData.surname,
+                    email: clientData.email,
+                    phoneNumber: clientData.phone || "",
+                },
+                create: {
+                    name: clientData.name,
+                    surname: clientData.surname,
+                    dni: clientData.dni,
+                    email: clientData.email,
+                    phoneNumber: clientData.phone || "",
+                },
+            });
+
+            // 🔥 NUEVO: Registramos la dirección de facturación/envío
+            if (clientData.addresses) {
+                await tx.billAddress.create({
+                    data: {
+                        clientId: client.id,
+                        street: clientData.addresses.street,
+                        streetNum: clientData.addresses.streetNum,
+                        floor: clientData.addresses.floor || null,
+                        apartment: clientData.addresses.apartment || null,
+                        locality: clientData.addresses.locality,
+                        province: clientData.addresses.province,
+                        reference: clientData.addresses.reference || null,
+                    }
+                });
+            }
+
+            // 3. Preparamos el array para crear los detalles anidados
+            const saleDetailsData = items.map((item: any) => ({
+                productId: Number(item.productId),
+                quantity: Number(item.quantity),
+                unitaryPrice: Number(item.price),
+            }));
+
+            // 4. Creamos la venta y los detalles
+            return await tx.sale.create({
+                data: {
+                    clientId: client.id,
+                    total: Number(total),
+                    status: "PENDING",
+                    details: {
+                        create: saleDetailsData,
+                    },
+                },
+                include: { details: true },
+            });
+        });
+    } catch (error: any) {
+        console.error("Error al crear venta de invitado:", error);
+        throw new Error(
+            error.message || "No se pudo crear la orden del cliente invitado",
+        );
     }
 };

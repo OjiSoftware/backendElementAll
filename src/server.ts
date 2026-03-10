@@ -46,7 +46,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/salesDetails", saleDetailRoutes);
 app.use("/api/billAddresses", billAddressRoutes);
-app.use("/api/payments", paymentRoutes); // <-- Agregada acá
+app.use("/api/payments", paymentRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;

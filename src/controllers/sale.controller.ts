@@ -19,9 +19,7 @@ export const getSales = async (_req: Request, res: Response) => {
  */
 export const getSale = async (req: Request, res: Response) => {
     try {
-        const sale = await saleService.getSaleById(
-            Number(req.params.id),
-        );
+        const sale = await saleService.getSaleById(Number(req.params.id));
         res.json(sale);
     } catch (error: any) {
         if (error.message === "Venta no encontrada") {
@@ -32,7 +30,7 @@ export const getSale = async (req: Request, res: Response) => {
 };
 
 /**
- * Crea una nueva venta
+ * Crea una nueva venta (Desde panel Admin)
  */
 export const createSale = async (req: Request, res: Response) => {
     try {
@@ -66,14 +64,39 @@ export const updateSale = async (req: Request, res: Response) => {
  */
 export const disableSale = async (req: Request, res: Response) => {
     try {
-        const result = await saleService.disableSale(
-            Number(req.params.id),
-        );
+        const result = await saleService.disableSale(Number(req.params.id));
         res.json(result);
     } catch (error: any) {
         if (error.message === "Venta no encontrada") {
             return res.status(404).json({ message: error.message });
         }
         res.status(500).json({ message: "Error al eliminar la venta" });
+    }
+};
+
+/**
+ * Crea una orden pendiente desde el carrito público (Guest Checkout)
+ */
+export const createGuestCheckout = async (req: Request, res: Response) => {
+    try {
+        const { clientData, items, total } = req.body;
+
+        // Delegamos todo el trabajo pesado a tu servicio
+        const result = await saleService.createGuestSale(
+            clientData,
+            items,
+            total,
+        );
+
+        // Devolvemos el saleId que el Frontend necesita para Mercado Pago
+        res.status(200).json({
+            message: result.message,
+            saleId: result.sale.id,
+        });
+    } catch (error: any) {
+        console.error("❌ Error en createGuestCheckout:", error.message);
+        res.status(500).json({
+            message: error.message || "Error al preparar la orden",
+        });
     }
 };
