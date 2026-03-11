@@ -1,6 +1,11 @@
-// src/controllers/sale.controller.ts
 import { Request, Response } from "express";
 import * as saleService from "../services/sale.service";
+// 🔥 IMPORTANTE: Agregamos el mail de confirmación
+import {
+    sendOrderCancellationEmail,
+    sendOrderConfirmationEmail,
+} from "../services/email.service";
+import { SaleWithAll } from "../types/sale.types";
 
 /**
  * Obtiene todas las ventas registradas
@@ -50,6 +55,38 @@ export const updateSale = async (req: Request, res: Response) => {
             Number(req.params.id),
             req.body,
         );
+
+        const saleData = result.sale as unknown as SaleWithAll;
+
+        if (saleData?.client?.email) {
+            if (req.body.status === "COMPLETED") {
+                sendOrderConfirmationEmail(saleData.client.email, saleData)
+                    .then(() =>
+                        console.log(
+                            `📧 Mail de CONFIRMACIÓN enviado vía PUT: ${saleData.client.email}`,
+                        ),
+                    )
+                    .catch((err) =>
+                        console.error(
+                            "❌ Error mail confirmación en PUT:",
+                            err,
+                        ),
+                    );
+            }
+
+            else if (req.body.status === "CANCELLED") {
+                sendOrderCancellationEmail(saleData.client.email, saleData)
+                    .then(() =>
+                        console.log(
+                            `📧 Mail de CANCELACIÓN enviado vía PUT: ${saleData.client.email}`,
+                        ),
+                    )
+                    .catch((err) =>
+                        console.error("❌ Error mail cancelación en PUT:", err),
+                    );
+            }
+        }
+
         res.json(result);
     } catch (error: any) {
         if (error.message === "Venta no encontrada") {
@@ -60,11 +97,22 @@ export const updateSale = async (req: Request, res: Response) => {
 };
 
 /**
- * Elimina una venta
+ * Elimina/Cancela una venta
  */
 export const disableSale = async (req: Request, res: Response) => {
     try {
-        const result = await saleService.disableSale(Number(req.params.id));
+        const id = Number(req.params.id);
+        const result = await saleService.disableSale(id);
+        const saleData = result.sale as unknown as SaleWithAll;
+
+        if (saleData?.client?.email) {
+            sendOrderCancellationEmail(saleData.client.email, saleData)
+                .then(() =>
+                    console.log(`📧 Mail enviado a: ${saleData.client.email}`),
+                )
+                .catch((err) => console.error("❌ Error mail:", err));
+        }
+
         res.json(result);
     } catch (error: any) {
         if (error.message === "Venta no encontrada") {
@@ -81,14 +129,12 @@ export const createGuestCheckout = async (req: Request, res: Response) => {
     try {
         const { clientData, items, total } = req.body;
 
-        // Delegamos todo el trabajo pesado a tu servicio
         const result = await saleService.createGuestSale(
             clientData,
             items,
             total,
         );
 
-        // Devolvemos el saleId que el Frontend necesita para Mercado Pago
         res.status(200).json({
             message: result.message,
             saleId: result.sale.id,

@@ -61,6 +61,13 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
             const detailsWithPrices = [];
             let totalInCents = 0;
 
+            // 1. Buscamos la dirección actual del cliente para sacar la "foto"
+            // Suponemos que el admin seleccionó un cliente que ya existe
+            const lastAddress = await tx.billAddress.findFirst({
+                where: { clientId: data.clientId },
+                orderBy: { id: "desc" }, // Traemos la última cargada
+            });
+
             for (const item of data.details) {
                 const product = await tx.product.findUnique({
                     where: { id: item.productId },
@@ -71,18 +78,15 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                     );
                 }
                 if (product.stock < item.quantity) {
-                    throw new Error(
-                        `Stock insuficiente para el producto: ${product.name}`,
-                    );
+                    throw new Error(`Stock insuficiente para: ${product.name}`);
                 }
+
                 await tx.product.update({
                     where: { id: item.productId },
                     data: { stock: { decrement: item.quantity } },
                 });
 
                 const priceInCents = Math.round(Number(product.price) * 100);
-
-                // Sumamos al total general
                 totalInCents += priceInCents * item.quantity;
 
                 detailsWithPrices.push({
@@ -94,16 +98,18 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
 
             const finalTotal = totalInCents / 100;
 
+            // 2. Creamos la venta con el addressId vinculado
             return await tx.sale.create({
                 data: {
                     clientId: data.clientId,
+                    addressId: lastAddress?.id || null,
                     status: data.status ?? "PENDING",
                     total: finalTotal,
                     details: {
                         create: detailsWithPrices,
                     },
                 },
-                include: { details: true },
+                include: { details: true, address: true },
             });
         });
     } catch (error: any) {
@@ -112,6 +118,12 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
     }
 };
 
+/**
+ * Actualiza una venta existente.
+ * @param id - ID de la venta a actualizar.
+ * @param data - Datos a actualizar.
+ * @returns Venta actualizada o null si no existe.
+ */
 /**
  * Actualiza una venta existente.
  * @param id - ID de la venta a actualizar.
@@ -137,21 +149,38 @@ export const updateSale = async (
             // Separamos los detalles del resto de la data (Spread Operator)
             const { details, ...restData } = data;
 
+            // 🔥 NUEVA LÓGICA: Si el estado cambia a CANCELLED, devolvemos stock
+            if (data.status === "CANCELLED" && existingSale.status !== "CANCELLED") {
+                for (const item of existingSale.details) {
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { stock: { increment: item.quantity } },
+                    });
+                }
+            }
+
             // 2. Si no hay detalles nuevos, actualizamos solo la data básica (cliente, status, etc.)
             if (!details) {
                 return await tx.sale.update({
                     where: { id },
                     data: { ...restData },
-                    include: { details: true },
+                    include: {
+                        details: { include: { product: true } },
+                        client: true,
+                        address: true,
+                    },
                 });
             }
 
-            // 3. Devolver el stock original a la base de datos
-            for (const oldItem of existingSale.details) {
-                await tx.product.update({
-                    where: { id: oldItem.productId },
-                    data: { stock: { increment: oldItem.quantity } },
-                });
+            // 3. Devolver el stock original a la base de datos (porque se van a cambiar los items)
+            // Solo si la venta NO se está cancelando ahora (para no devolver stock dos veces)
+            if (data.status !== "CANCELLED") {
+                for (const oldItem of existingSale.details) {
+                    await tx.product.update({
+                        where: { id: oldItem.productId },
+                        data: { stock: { increment: oldItem.quantity } },
+                    });
+                }
             }
 
             const newDetailsToCreate = [];
@@ -166,20 +195,19 @@ export const updateSale = async (
                 item.quantity = item.quantity ?? 0;
 
                 if (!product) {
-                    throw new Error(
-                        `Producto con ID ${item.productId} no encontrado`,
-                    );
-                }
-                if (product.stock < item.quantity) {
-                    throw new Error(
-                        `Stock insuficiente para el producto: ${product.name}`,
-                    );
+                    throw new Error(`Producto con ID ${item.productId} no encontrado`);
                 }
 
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { stock: { decrement: item.quantity } },
-                });
+                // Solo descontamos stock si la venta NO está siendo cancelada
+                if (data.status !== "CANCELLED") {
+                    if (product.stock < item.quantity) {
+                        throw new Error(`Stock insuficiente para el producto: ${product.name}`);
+                    }
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { stock: { decrement: item.quantity } },
+                    });
+                }
 
                 newTotal = newTotal + Number(product.price) * item.quantity;
 
@@ -190,18 +218,22 @@ export const updateSale = async (
                 });
             }
 
-            // 5. Guardar los cambios finales (borrando detalles viejos y creando los nuevos)
+            // 5. Guardar los cambios finales
             return await tx.sale.update({
                 where: { id },
                 data: {
-                    ...restData, // Insertamos cliente, status, etc.
+                    ...restData,
                     total: newTotal,
                     details: {
                         deleteMany: {},
                         create: newDetailsToCreate,
                     },
                 },
-                include: { details: true },
+                include: {
+                    details: { include: { product: true } },
+                    client: true,
+                    address: true
+                },
             });
         });
     } catch (error: any) {
@@ -217,17 +249,38 @@ export const updateSale = async (
  */
 export const disableSale = async (id: number): Promise<SaleModel | null> => {
     try {
-        return await prisma.sale.update({
-            where: { id },
-            data: { status: "CANCELLED" },
-            include: { details: true },
+        return await prisma.$transaction(async (tx) => {
+            // 1. Traemos la venta con sus detalles
+            const sale = await tx.sale.findUnique({
+                where: { id },
+                include: { details: true, client: true },
+            });
+
+            if (!sale) throw new Error("Venta no encontrada");
+            if (sale.status === "CANCELLED") return sale;
+
+            // 2. Devolvemos el stock (solo si no estaba ya cancelada)
+            for (const item of sale.details) {
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            }
+
+            // 3. Cambiamos el estado
+            return await tx.sale.update({
+                where: { id },
+                data: { status: "CANCELLED" },
+                include: {
+                    client: true,
+                    address: true,
+                    details: { include: { product: true } },
+                },
+            });
         });
-    } catch (error) {
-        console.warn(
-            `Venta con id ${id} no encontrada o error al deshabilitar:`,
-            error,
-        );
-        throw new Error("No se pudo deshabilitar la venta");
+    } catch (error: any) {
+        console.error("Error al cancelar venta:", error.message);
+        throw new Error("No se pudo cancelar la venta");
     }
 };
 
@@ -269,9 +322,11 @@ export const insertGuestSale = async (
                 },
             });
 
-            // 🔥 NUEVO: Registramos la dirección de facturación/envío
+            // 2. Registramos la dirección y guardamos su ID
+            let currentAddressId: number | null = null;
+
             if (clientData.addresses) {
-                await tx.billAddress.create({
+                const newAddress = await tx.billAddress.create({
                     data: {
                         clientId: client.id,
                         street: clientData.addresses.street,
@@ -281,28 +336,34 @@ export const insertGuestSale = async (
                         locality: clientData.addresses.locality,
                         province: clientData.addresses.province,
                         reference: clientData.addresses.reference || null,
-                    }
+                    },
                 });
+                // Guardamos el ID para vincularlo a la Sale
+                currentAddressId = newAddress.id;
             }
 
-            // 3. Preparamos el array para crear los detalles anidados
+            // 3. Preparamos los detalles
             const saleDetailsData = items.map((item: any) => ({
                 productId: Number(item.productId),
                 quantity: Number(item.quantity),
                 unitaryPrice: Number(item.price),
             }));
 
-            // 4. Creamos la venta y los detalles
+            // 4. Creamos la venta vinculándola a la dirección específica (la "foto")
             return await tx.sale.create({
                 data: {
                     clientId: client.id,
+                    addressId: currentAddressId, // <--- El vínculo clave
                     total: Number(total),
                     status: "PENDING",
                     details: {
                         create: saleDetailsData,
                     },
                 },
-                include: { details: true },
+                include: {
+                    details: true,
+                    address: true, // Incluimos la dirección para confirmación
+                },
             });
         });
     } catch (error: any) {

@@ -67,6 +67,7 @@ model BillAddress {
 
   clientId  Int     @map("client_id")
   client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sales     Sale[]
 
   @@map("bill_address")
 }
@@ -114,10 +115,9 @@ model Sale {
 
   clientId  Int        @map("client_id")
   client    Client     @relation(fields: [clientId], references: [id])
-
+  addressId Int?       @map("address_id")
+  address   BillAddress? @relation(fields: [addressId], references: [id])
   details   SaleDetails[]
-
-  // 3. Relación 1 a 1 con Transaction
   transaction Transaction?
 
   @@map("sale")

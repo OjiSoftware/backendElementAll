@@ -3,6 +3,7 @@ import { Request, Response } from "express";
 import { PaymentService } from "../services/payment.service";
 import { prisma } from "../prisma";
 import { MercadoPagoConfig, Payment } from "mercadopago";
+import { sendOrderConfirmationEmail } from "../services/email.service";
 
 const clientMP = new MercadoPagoConfig({
     accessToken: process.env.MP_ACCESS_TOKEN || "",
@@ -11,6 +12,7 @@ const clientMP = new MercadoPagoConfig({
 /**
  * 1. POST /api/payments/create-preference
  * Agarra la venta creada y pide el link a Mercado Pago.
+ * AHORA: Valida stock real antes de permitir el pago.
  */
 export const createPreference = async (req: Request, res: Response) => {
     try {
@@ -26,6 +28,28 @@ export const createPreference = async (req: Request, res: Response) => {
 
         if (!sale) {
             return res.status(404).json({ error: "Venta no encontrada" });
+        }
+
+        // 🔥 PROTECCIÓN DE STOCK: Validamos cada producto antes de ir a MP
+        for (const detail of sale.details) {
+            // Buscamos el stock más fresco de la DB
+            const freshProduct = await prisma.product.findUnique({
+                where: { id: detail.productId },
+                select: { stock: true, name: true },
+            });
+
+            if (!freshProduct) {
+                return res.status(404).json({
+                    error: `El producto ${detail.product.name} ya no existe.`,
+                });
+            }
+
+            if (freshProduct.stock < detail.quantity) {
+                return res.status(400).json({
+                    error: "Stock insuficiente",
+                    details: `Lo sentimos, el producto "${freshProduct.name}" se quedó sin stock suficiente (Quedan: ${freshProduct.stock}).`,
+                });
+            }
         }
 
         await prisma.transaction.upsert({
@@ -75,7 +99,7 @@ export const createPreference = async (req: Request, res: Response) => {
  * Recibe el aviso de pago, actualiza DB y descuenta stock atómicamente.
  */
 export const handleWebhook = async (req: Request, res: Response) => {
-    res.status(200).send("OK");
+    res.status(200).send("OK"); // Respondemos rápido para que MP no reintente
 
     try {
         const type = req.body.type || req.query.type;
@@ -114,14 +138,11 @@ export const handleWebhook = async (req: Request, res: Response) => {
                     const stockUpdates = saleWithDetails.details.map((detail) =>
                         prisma.product.update({
                             where: { id: detail.productId },
-                            data: {
-                                stock: {
-                                    decrement: detail.quantity,
-                                },
-                            },
+                            data: { stock: { decrement: detail.quantity } },
                         }),
                     );
 
+                    // 1. Transacción de Base de Datos
                     await prisma.$transaction([
                         prisma.transaction.update({
                             where: { saleId: saleId },
@@ -140,6 +161,49 @@ export const handleWebhook = async (req: Request, res: Response) => {
                     console.log(
                         `✅ Venta ${saleId} cobrada y stock descontado.`,
                     );
+
+                    // 📧 2. ENVÍO DE MAIL DE CONFIRMACIÓN
+                    // Buscamos la data con los nombres de productos y la dirección histórica
+                    const fullSaleInfo = await prisma.sale.findUnique({
+                        where: { id: saleId },
+                        include: {
+                            client: true,
+                            address: true,
+                            details: {
+                                include: { product: true },
+                            },
+                        },
+                    });
+
+                    if (fullSaleInfo && fullSaleInfo.client.email) {
+                        // Extraemos la información del pago directo de Mercado Pago
+                        const paymentInfo = {
+                            id: paymentData.id || "N/A",
+                            method:
+                                paymentData.payment_method_id || "Desconocido",
+                            type: paymentData.payment_type_id || "Desconocido",
+                            lastFour:
+                                paymentData.card?.last_four_digits || null,
+                        };
+
+                        // Ejecución asíncrona para evitar bloqueo del hilo principal
+                        sendOrderConfirmationEmail(
+                            fullSaleInfo.client.email,
+                            fullSaleInfo,
+                            paymentInfo, // 🔥 Le pasamos el tercer parámetro acá
+                        )
+                            .then(() =>
+                                console.log(
+                                    `📧 Notificacion de confirmacion enviada a: ${fullSaleInfo.client.email}`,
+                                ),
+                            )
+                            .catch((err) =>
+                                console.error(
+                                    "❌ Error en envio de notificacion de confirmacion:",
+                                    err,
+                                ),
+                            );
+                    }
                 } else if (
                     paymentData.status === "rejected" ||
                     paymentData.status === "cancelled"

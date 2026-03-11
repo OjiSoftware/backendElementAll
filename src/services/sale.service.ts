@@ -1,7 +1,11 @@
 // src/services/sale.service.ts
 import * as saleRepo from "../repositories/sale.repository";
 import { Sale as SaleModel } from "../generated/prisma/client";
-import { CreateSaleInput, UpdateSaleInput } from "../types/sale.types";
+import {
+    CreateSaleInput,
+    UpdateSaleInput,
+    SaleWithAll,
+} from "../types/sale.types";
 
 /**
  * Obtiene todas las ventas de la base de datos
@@ -34,11 +38,11 @@ export const getSaleById = async (id: number): Promise<SaleModel> => {
  */
 export const createSale = async (
     data: CreateSaleInput,
-): Promise<{ message: string; sale: SaleModel }> => {
+): Promise<{ message: string; sale: SaleWithAll }> => {
     const sale = await saleRepo.insertSale(data);
     return {
         message: "Venta creada con éxito",
-        sale,
+        sale: sale as SaleWithAll,
     };
 };
 
@@ -52,7 +56,7 @@ export const createSale = async (
 export const updateSale = async (
     id: number,
     data: UpdateSaleInput,
-): Promise<{ message: string; sale: SaleModel }> => {
+): Promise<{ message: string; sale: SaleWithAll }> => {
     const sale = await saleRepo.updateSale(id, data);
 
     if (!sale) {
@@ -61,7 +65,7 @@ export const updateSale = async (
 
     return {
         message: "Venta actualizada con éxito",
-        sale,
+        sale: sale as SaleWithAll,
     };
 };
 
@@ -73,7 +77,7 @@ export const updateSale = async (
  */
 export const disableSale = async (
     id: number,
-): Promise<{ message: string; sale: SaleModel }> => {
+): Promise<{ message: string; sale: SaleWithAll }> => {
     const sale = await saleRepo.disableSale(id);
 
     if (!sale) {
@@ -82,7 +86,7 @@ export const disableSale = async (
 
     return {
         message: "Venta eliminada con éxito",
-        sale,
+        sale: sale as SaleWithAll,
     };
 };
 
@@ -96,9 +100,8 @@ export const disableSale = async (
 export const createGuestSale = async (
     clientData: any,
     items: any[],
-    total: number
-): Promise<{ message: string; sale: SaleModel }> => {
-
+    total: number,
+): Promise<{ message: string; sale: SaleWithAll }> => {
     // Validaciones extra de negocio podrían ir acá antes de tocar la DB
     if (!clientData.dni || items.length === 0) {
         throw new Error("Faltan datos obligatorios para crear la orden");
@@ -109,6 +112,6 @@ export const createGuestSale = async (
 
     return {
         message: "Orden de invitado creada con éxito",
-        sale,
+        sale: sale as SaleWithAll,
     };
 };

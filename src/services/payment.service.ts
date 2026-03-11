@@ -45,7 +45,7 @@ export class PaymentService {
                     pending: `${frontendUrl}/checkout/status`,
                 },
 
-                // auto_return: "approved",
+                auto_return: "approved",
 
                 binary_mode: true,
                 external_reference: externalReference,

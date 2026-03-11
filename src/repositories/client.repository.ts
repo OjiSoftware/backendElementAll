@@ -37,10 +37,8 @@ export const findClientById = async (
 };
 
 /**
- * Crea un nuevo cliente en la base de datos.
- * @param data - Objeto con los datos del cliente.
- * @returns Cliente recién creado.
- * @throws Error si falla la inserción.
+ * Crea o actualiza un cliente en la base de datos (Upsert).
+ * Evita errores de duplicidad por DNI o Email.
  */
 export const createClient = async (
     data: CreateClientInput,
@@ -48,22 +46,39 @@ export const createClient = async (
     try {
         const { addresses, ...clientData } = data;
 
-        const client = await prisma.client.create({
-            data: {
+        const client = await prisma.client.upsert({
+            where: { dni: clientData.dni },
+            update: {
                 ...clientData,
-                addresses: {
-                    create: addresses
-                }
+                // Si viene el objeto addresses, agregamos una nueva dirección al historial
+                ...(addresses
+                    ? {
+                          addresses: {
+                              // 🔥 SE ELIMINÓ EL deleteMany PARA NO PERDER EL HISTORIAL
+                              create: addresses,
+                          },
+                      }
+                    : {}),
+            },
+            create: {
+                ...clientData,
+                ...(addresses
+                    ? {
+                          addresses: {
+                              create: addresses,
+                          },
+                      }
+                    : {}),
             },
             include: {
                 addresses: true,
-            }
+            },
         });
 
         return client;
     } catch (error) {
-        console.error("Error al crear cliente:", error);
-        throw new Error("No se pudo crear el cliente");
+        console.error("Error al procesar cliente (upsert):", error);
+        throw new Error("No se pudo procesar la información del cliente");
     }
 };
 
@@ -84,16 +99,19 @@ export const updateClient = async (
             where: { id },
             data: {
                 ...clientData,
-                ...(addresses !== undefined ? {
-                    addresses: {
-                        deleteMany: {},
-                        create: addresses as any,
-                    }
-                } : {})
+                // Agregamos la dirección al historial en lugar de pisar la actual
+                ...(addresses !== undefined
+                    ? {
+                          addresses: {
+                              // 🔥 SE ELIMINÓ EL deleteMany PARA NO PERDER EL HISTORIAL
+                              create: addresses as any,
+                          },
+                      }
+                    : {}),
             },
             include: {
                 addresses: true,
-            }
+            },
         });
 
         return client;
