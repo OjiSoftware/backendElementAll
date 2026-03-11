@@ -135,32 +135,53 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
                     if (!saleWithDetails) return;
 
-                    const stockUpdates = saleWithDetails.details.map((detail) =>
-                        prisma.product.update({
-                            where: { id: detail.productId },
-                            data: { stock: { decrement: detail.quantity } },
-                        }),
-                    );
+                    // IMPORTANTE: Solo descontamos si NO se descontó antes
+                    if (!saleWithDetails.isStockDeducted) {
+                        const stockUpdates = saleWithDetails.details.map((detail) =>
+                            prisma.product.update({
+                                where: { id: detail.productId },
+                                data: { stock: { decrement: detail.quantity } },
+                            }),
+                        );
 
-                    // 1. Transacción de Base de Datos
-                    await prisma.$transaction([
-                        prisma.transaction.update({
-                            where: { saleId: saleId },
-                            data: {
-                                status: "approved",
-                                mpId: paymentData.id?.toString(),
-                            },
-                        }),
-                        prisma.sale.update({
-                            where: { id: saleId },
-                            data: { status: "COMPLETED" },
-                        }),
-                        ...stockUpdates,
-                    ]);
+                        // 1. Transacción de Base de Datos
+                        await prisma.$transaction([
+                            prisma.transaction.update({
+                                where: { saleId: saleId },
+                                data: {
+                                    status: "approved",
+                                    mpId: paymentData.id?.toString(),
+                                },
+                            }),
+                            prisma.sale.update({
+                                where: { id: saleId },
+                                data: { status: "COMPLETED", isStockDeducted: true }, // Se marca como descontado
+                            }),
+                            ...stockUpdates,
+                        ]);
 
-                    console.log(
-                        `✅ Venta ${saleId} cobrada y stock descontado.`,
-                    );
+                        console.log(
+                            `✅ Venta ${saleId} cobrada y stock descontado.`,
+                        );
+                    } else {
+                        // Ya estaba descontado (raro, pero como protección)
+                        await prisma.$transaction([
+                            prisma.transaction.update({
+                                where: { saleId: saleId },
+                                data: {
+                                    status: "approved",
+                                    mpId: paymentData.id?.toString(),
+                                },
+                            }),
+                            prisma.sale.update({
+                                where: { id: saleId },
+                                data: { status: "COMPLETED" },
+                            }),
+                        ]);
+                        console.log(`✅ Venta ${saleId} cobrada (Stock ya había sido descontado).`);
+                    }
+
+
 
                     // 📧 2. ENVÍO DE MAIL DE CONFIRMACIÓN
                     // Buscamos la data con los nombres de productos y la dirección histórica

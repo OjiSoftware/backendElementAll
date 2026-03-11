@@ -25,29 +25,29 @@ enum TransactionStatus {
 }
 
 model User {
-  id              Int       @id @default(autoincrement())
-  createdAt       DateTime  @default(now())
-  email           String    @unique @db.VarChar(100)
-  password        String    @db.VarChar(255)
-  name            String    @db.VarChar(50)
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  name      String   @db.VarChar(50)
 
   // Campos para la recuperación de contraseña
-  resetToken      String?   @unique @db.VarChar(255)
+  resetToken        String?   @unique @db.VarChar(255)
   resetTokenExpires DateTime?
 
   @@map("user")
 }
 
 model Client {
-  id          Int           @id @default(autoincrement())
-  name        String        @db.VarChar(50)
-  surname     String        @db.VarChar(50)
-  dni         String        @unique @db.VarChar(8)
-  phoneNumber String        @map("phone_number") @db.VarChar(20)
-  email       String        @unique @db.VarChar(100)
+  id          Int    @id @default(autoincrement())
+  name        String @db.VarChar(50)
+  surname     String @db.VarChar(50)
+  dni         String @unique @db.VarChar(8)
+  phoneNumber String @map("phone_number") @db.VarChar(20)
+  email       String @db.VarChar(100)
 
-  sales       Sale[]
-  addresses   BillAddress[]
+  sales     Sale[]
+  addresses BillAddress[]
 
   // 2. Relación con las transacciones
   transactions Transaction[]
@@ -65,9 +65,9 @@ model BillAddress {
   province  String  @db.VarChar(100)
   reference String? @db.VarChar(255)
 
-  clientId  Int     @map("client_id")
-  client    Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  sales     Sale[]
+  clientId Int    @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sales    Sale[]
 
   @@map("bill_address")
 }
@@ -83,26 +83,26 @@ model Category {
 }
 
 model SubCategory {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique @map("subcategory_name") @db.VarChar(100)
-  createdAt  DateTime @default(now()) @map("created_at")
-  status     Boolean  @default(true)
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @map("subcategory_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
 
   categoryId Int      @map("categories_id")
   category   Category @relation(fields: [categoryId], references: [id])
 
-  products   Product[]
+  products Product[]
 
   @@map("subcategories")
 }
 
 model Brand {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique @map("marca_name") @db.VarChar(100)
-  createdAt DateTime  @default(now()) @map("created_at")
-  status    Boolean   @default(true)
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @map("marca_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  status    Boolean  @default(true)
 
-  products  Product[]
+  products Product[]
 
   @@map("brand")
 }
@@ -112,19 +112,20 @@ model Sale {
   createdAt DateTime   @default(now()) @map("created_at")
   status    SaleStatus @default(PENDING)
   total     Decimal    @db.Decimal(10, 2)
+  isStockDeducted Boolean @default(false) @map("is_stock_deducted")
 
-  clientId  Int        @map("client_id")
-  client    Client     @relation(fields: [clientId], references: [id])
-  addressId Int?       @map("address_id")
-  address   BillAddress? @relation(fields: [addressId], references: [id])
-  details   SaleDetails[]
+  clientId    Int           @map("client_id")
+  client      Client        @relation(fields: [clientId], references: [id])
+  addressId   Int?          @map("address_id")
+  address     BillAddress?  @relation(fields: [addressId], references: [id])
+  details     SaleDetails[]
   transaction Transaction?
 
   @@map("sale")
 }
 
 model SaleDetails {
-  id        Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   saleId    Int @map("sale_id")
   productId Int @map("product_id")
@@ -141,23 +142,23 @@ model SaleDetails {
 
 // 4. Nuevo modelo Transaction
 model Transaction {
-  id        Int               @id @default(autoincrement())
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  amount    Decimal           @db.Decimal(10, 2)
-  status    TransactionStatus @default(pending)
+  amount Decimal           @db.Decimal(10, 2)
+  status TransactionStatus @default(pending)
 
   // ID que devuelve Mercado Pago (puede ser nulo hasta que se apruebe/rechace)
-  mpId      String?           @unique @map("mp_id") @db.VarChar(255)
+  mpId String? @unique @map("mp_id") @db.VarChar(255)
 
   // Relación con Sale (1 a 1)
-  saleId    Int               @unique @map("sale_id")
-  sale      Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId Int  @unique @map("sale_id")
+  sale   Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   // Relación con Client
-  clientId  Int               @map("client_id")
-  client    Client            @relation(fields: [clientId], references: [id])
+  clientId Int    @map("client_id")
+  client   Client @relation(fields: [clientId], references: [id])
 
   @@map("transactions")
 }
@@ -174,13 +175,13 @@ model Product {
   stock            Int
   showingInCatalog Boolean  @default(false) @map("showing_in_catalog")
 
-  subCategoryId    Int      @map("sub_categories_id")
-  subCategory      SubCategory @relation(fields: [subCategoryId], references: [id])
+  subCategoryId Int         @map("sub_categories_id")
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
 
-  brandId          Int      @map("brand_id")
-  brand            Brand    @relation(fields: [brandId], references: [id])
+  brandId Int   @map("brand_id")
+  brand   Brand @relation(fields: [brandId], references: [id])
 
-  saleDetails      SaleDetails[]
+  saleDetails SaleDetails[]
 
   @@map("products")
 }

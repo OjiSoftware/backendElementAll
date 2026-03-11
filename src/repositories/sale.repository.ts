@@ -105,6 +105,7 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
                     addressId: lastAddress?.id || null,
                     status: data.status ?? "PENDING",
                     total: finalTotal,
+                    isStockDeducted: true, // ¡Admin creó la venta, restamos el stock acá!
                     details: {
                         create: detailsWithPrices,
                     },
@@ -149,21 +150,50 @@ export const updateSale = async (
             // Separamos los detalles del resto de la data (Spread Operator)
             const { details, ...restData } = data;
 
-            // 🔥 NUEVA LÓGICA: Si el estado cambia a CANCELLED, devolvemos stock
+            // 🔥 NUEVA LÓGICA: Si el estado cambia a CANCELLED, devolvemos stock SOLO si fue descontado
             if (data.status === "CANCELLED" && existingSale.status !== "CANCELLED") {
-                for (const item of existingSale.details) {
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        data: { stock: { increment: item.quantity } },
-                    });
+                if (existingSale.isStockDeducted) {
+                    for (const item of existingSale.details) {
+                        await tx.product.update({
+                            where: { id: item.productId },
+                            data: { stock: { increment: item.quantity } },
+                        });
+                    }
                 }
+                // Actualizamos registro
+                return await tx.sale.update({
+                     where: { id },
+                     data: { ...restData, isStockDeducted: false }, // Devuelto
+                     include: {
+                         details: { include: { product: true } },
+                         client: true,
+                         address: true,
+                     },
+                 });
             }
 
-            // 2. Si no hay detalles nuevos, actualizamos solo la data básica (cliente, status, etc.)
+            // 2. Si no hay detalles nuevos (y no estamos cancelando explícitamente arriba)
             if (!details) {
+                // Si el gestor decide pasar a COMPLETED o IN_PROGRESS manualmente
+                // y no se habia descontado el stock (ej: era una compra web re-aprobada manual)
+                let shouldDeductStockNow = false;
+                if ((data.status === "COMPLETED" || data.status === "IN_PROGRESS") && !existingSale.isStockDeducted) {
+                     shouldDeductStockNow = true;
+                     for (const item of existingSale.details) {
+                         // Aca no validamos maxstock para forzar el admin, pero podrias agregar check
+                         await tx.product.update({
+                             where: { id: item.productId },
+                             data: { stock: { decrement: item.quantity } },
+                         });
+                     }
+                }
+
                 return await tx.sale.update({
                     where: { id },
-                    data: { ...restData },
+                    data: { 
+                         ...restData, 
+                         ...(shouldDeductStockNow ? { isStockDeducted: true } : {}) 
+                    },
                     include: {
                         details: { include: { product: true } },
                         client: true,
@@ -174,7 +204,7 @@ export const updateSale = async (
 
             // 3. Devolver el stock original a la base de datos (porque se van a cambiar los items)
             // Solo si la venta NO se está cancelando ahora (para no devolver stock dos veces)
-            if (data.status !== "CANCELLED") {
+            if (data.status !== "CANCELLED" && existingSale.isStockDeducted) {
                 for (const oldItem of existingSale.details) {
                     await tx.product.update({
                         where: { id: oldItem.productId },
@@ -224,6 +254,9 @@ export const updateSale = async (
                 data: {
                     ...restData,
                     total: newTotal,
+                    // Si llegamos hasta acá (no fue CANCELLED), como recorrimos details, se descontó stock
+                    // Así que isStockDeducted es true.
+                    isStockDeducted: data.status !== "CANCELLED",
                     details: {
                         deleteMany: {},
                         create: newDetailsToCreate,
@@ -259,18 +292,20 @@ export const disableSale = async (id: number): Promise<SaleModel | null> => {
             if (!sale) throw new Error("Venta no encontrada");
             if (sale.status === "CANCELLED") return sale;
 
-            // 2. Devolvemos el stock (solo si no estaba ya cancelada)
-            for (const item of sale.details) {
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { stock: { increment: item.quantity } },
-                });
+            // 2. Devolvemos el stock (solo si estaba descontado)
+            if (sale.isStockDeducted) {
+                for (const item of sale.details) {
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { stock: { increment: item.quantity } },
+                    });
+                }
             }
 
             // 3. Cambiamos el estado
             return await tx.sale.update({
                 where: { id },
-                data: { status: "CANCELLED" },
+                data: { status: "CANCELLED", isStockDeducted: false },
                 include: {
                     client: true,
                     address: true,
@@ -356,6 +391,7 @@ export const insertGuestSale = async (
                     addressId: currentAddressId, // <--- El vínculo clave
                     total: Number(total),
                     status: "PENDING",
+                    isStockDeducted: false, // ¡Checkout Web NO resta stock TODAVÍA!
                     details: {
                         create: saleDetailsData,
                     },
