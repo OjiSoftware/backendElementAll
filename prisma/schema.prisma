@@ -153,6 +153,11 @@ model Transaction {
   // ID que devuelve Mercado Pago (puede ser nulo hasta que se apruebe/rechace)
   mpId String? @unique @map("mp_id") @db.VarChar(255)
 
+  // Información del método de pago
+  paymentMethod String? @map("payment_method") @db.VarChar(50)
+  paymentType   String? @map("payment_type") @db.VarChar(50)
+  cardLastFour  String? @map("card_last_four") @db.VarChar(4)
+
   // Relación con Sale (1 a 1)
   saleId Int  @unique @map("sale_id")
   sale   Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)

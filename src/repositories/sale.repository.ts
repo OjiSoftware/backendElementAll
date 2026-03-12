@@ -14,7 +14,7 @@ import { CreateSaleInput, UpdateSaleInput } from "../types/sale.types";
 export const findAllSales = async (): Promise<SaleModel[]> => {
     try {
         return await prisma.sale.findMany({
-            include: { client: true, details: true },
+            include: { client: true, details: true, transaction: true },
             orderBy: { id: "desc" },
         });
     } catch (error) {
@@ -40,6 +40,7 @@ export const findSaleById = async (id: number): Promise<SaleModel | null> => {
                     },
                 },
                 details: true,
+                transaction: true,
             },
         });
     } catch (error) {

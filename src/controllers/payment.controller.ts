@@ -153,6 +153,9 @@ export const handleWebhook = async (req: Request, res: Response) => {
                                 data: {
                                     status: "approved",
                                     mpId: paymentData.id?.toString(),
+                                    paymentMethod: paymentData.payment_method_id,
+                                    paymentType: paymentData.payment_type_id,
+                                    cardLastFour: paymentData.card?.last_four_digits,
                                 },
                             }),
                             prisma.sale.update({
@@ -173,6 +176,9 @@ export const handleWebhook = async (req: Request, res: Response) => {
                                 data: {
                                     status: "approved",
                                     mpId: paymentData.id?.toString(),
+                                    paymentMethod: paymentData.payment_method_id,
+                                    paymentType: paymentData.payment_type_id,
+                                    cardLastFour: paymentData.card?.last_four_digits,
                                 },
                             }),
                             prisma.sale.update({
