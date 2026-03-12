@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from 'cors';
 import cookieParser from "cookie-parser";
+import { startCleanupTask } from "./services/cleanup.service";
 
 // Importar rutas
 import authRoutes from "./routes/auth.routes";
@@ -50,6 +51,7 @@ app.use("/api/payments", paymentRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 3000;
+startCleanupTask();
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });

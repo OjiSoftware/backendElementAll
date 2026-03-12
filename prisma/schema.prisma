@@ -113,6 +113,7 @@ model Sale {
   status    SaleStatus @default(PENDING)
   total     Decimal    @db.Decimal(10, 2)
   isStockDeducted Boolean @default(false) @map("is_stock_deducted")
+  expiresAt       DateTime? @map("expires_at")
 
   clientId    Int           @map("client_id")
   client      Client        @relation(fields: [clientId], references: [id])

@@ -14,44 +14,45 @@ const clientMP = new MercadoPagoConfig({
  * Agarra la venta creada y pide el link a Mercado Pago.
  * AHORA: Valida stock real antes de permitir el pago.
  */
+import { reserveStock, insertGuestSale } from "../repositories/sale.repository";
+
 export const createPreference = async (req: Request, res: Response) => {
     try {
-        const { saleId } = req.body;
+        const { saleId, clientData, items, total } = req.body;
 
-        const sale = await prisma.sale.findUnique({
-            where: { id: Number(saleId) },
-            include: {
-                details: { include: { product: true } },
-                client: true,
-            },
-        });
+        let sale;
+
+        // 1. Si no hay saleId, es la primera vez que tocan "Pagar" -> Creamos la Orden
+        if (!saleId && clientData && items) {
+            sale = await insertGuestSale(clientData, items, total);
+        } else if (saleId) {
+            sale = await prisma.sale.findUnique({
+                where: { id: Number(saleId) },
+                include: {
+                    details: { include: { product: true } },
+                    client: true,
+                },
+            });
+        }
 
         if (!sale) {
             return res.status(404).json({ error: "Venta no encontrada" });
         }
 
-        // 🔥 PROTECCIÓN DE STOCK: Validamos cada producto antes de ir a MP
-        for (const detail of sale.details) {
-            // Buscamos el stock más fresco de la DB
-            const freshProduct = await prisma.product.findUnique({
-                where: { id: detail.productId },
-                select: { stock: true, name: true },
-            });
-
-            if (!freshProduct) {
-                return res.status(404).json({
-                    error: `El producto ${detail.product.name} ya no existe.`,
-                });
-            }
-
-            if (freshProduct.stock < detail.quantity) {
+        // 2. 🔥 RESERVA DE STOCK: Si no está reservado, reservamos ahora (atómico)
+        if (!sale.isStockDeducted) {
+            try {
+                // Actualizamos la variable 'sale' con la info del stock reservado
+                sale = await reserveStock(sale.id);
+            } catch (stockError: any) {
                 return res.status(400).json({
                     error: "Stock insuficiente",
-                    details: `Lo sentimos, el producto "${freshProduct.name}" se quedó sin stock suficiente (Quedan: ${freshProduct.stock}).`,
+                    details: stockError.message,
                 });
             }
         }
 
+        // 3. Crear Transacción (para seguimiento)
         await prisma.transaction.upsert({
             where: { saleId: sale.id },
             update: {
@@ -66,9 +67,9 @@ export const createPreference = async (req: Request, res: Response) => {
             },
         });
 
-        const mappedItems = sale.details.map((detail) => ({
+        const mappedItems = (sale as any).details.map((detail: any) => ({
             id: detail.productId,
-            title: detail.product.name,
+            title: detail.product?.name || "Producto",
             unit_price: Number(detail.unitaryPrice),
             quantity: Number(detail.quantity),
         }));
@@ -77,12 +78,13 @@ export const createPreference = async (req: Request, res: Response) => {
         const mpResult = await paymentService.createPreference(
             mappedItems,
             String(sale.id),
-            sale.client.email,
+            (sale as any).client.email,
         );
 
         res.status(200).json({
             preferenceId: mpResult.id,
             initPoint: mpResult.init_point,
+            saleId: sale.id, // Devolvemos el ID por si se acaba de crear
         });
     } catch (error) {
         const err = error as Error;

@@ -377,7 +377,7 @@ export const insertGuestSale = async (
                 currentAddressId = newAddress.id;
             }
 
-            // 3. Preparamos los detalles
+            // 3. Preparamos los detalles (SIN DESCONTAR STOCK AÚN)
             const saleDetailsData = items.map((item: any) => ({
                 productId: Number(item.productId),
                 quantity: Number(item.quantity),
@@ -388,17 +388,18 @@ export const insertGuestSale = async (
             return await tx.sale.create({
                 data: {
                     clientId: client.id,
-                    addressId: currentAddressId, // <--- El vínculo clave
+                    addressId: currentAddressId,
                     total: Number(total),
                     status: "PENDING",
-                    isStockDeducted: false, // ¡Checkout Web NO resta stock TODAVÍA!
+                    isStockDeducted: false, // Checkout Web NO resta stock hasta "Pagar de forma segura"
+                    expiresAt: null,
                     details: {
                         create: saleDetailsData,
                     },
                 },
                 include: {
                     details: true,
-                    address: true, // Incluimos la dirección para confirmación
+                    address: true,
                 },
             });
         });
@@ -407,5 +408,59 @@ export const insertGuestSale = async (
         throw new Error(
             error.message || "No se pudo crear la orden del cliente invitado",
         );
+    }
+};
+
+/**
+ * Reserva el stock para una venta ya creada.
+ * Verifica disponibilidad y descuenta del inventario.
+ */
+export const reserveStock = async (id: number): Promise<SaleModel> => {
+    try {
+        return await prisma.$transaction(async (tx) => {
+            const sale = await tx.sale.findUnique({
+                where: { id },
+                include: { details: true },
+            });
+
+            if (!sale) throw new Error("Venta no encontrada");
+            if (sale.isStockDeducted) return sale; // Ya reservado
+
+            // 1. Verificar y descontar stock
+            for (const detail of sale.details) {
+                const product = await tx.product.findUnique({
+                    where: { id: detail.productId },
+                });
+
+                if (!product) throw new Error(`Producto ${detail.productId} no encontrado`);
+                if (product.stock < detail.quantity) {
+                    throw new Error(`Stock insuficiente para ${product.name}`);
+                }
+
+                await tx.product.update({
+                    where: { id: product.id },
+                    data: { stock: { decrement: detail.quantity } },
+                });
+            }
+
+            // 2. Marcar como reservado y poner expiración
+            const expiresAt = new Date();
+            expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+            return await tx.sale.update({
+                where: { id },
+                data: {
+                    isStockDeducted: true,
+                    expiresAt: expiresAt,
+                },
+                include: { 
+                    details: { include: { product: true } }, 
+                    client: true 
+                },
+            });
+        });
+    } catch (error: any) {
+        console.error(`Error al reservar stock para venta ${id}:`, error.message);
+        throw new Error(error.message || "No se pudo reservar el stock");
     }
 };
