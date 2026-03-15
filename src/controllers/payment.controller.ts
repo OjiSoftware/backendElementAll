@@ -39,7 +39,7 @@ export const createPreference = async (req: Request, res: Response) => {
             return res.status(404).json({ error: "Venta no encontrada" });
         }
 
-        // 2. 🔥 RESERVA DE STOCK: Si no está reservado, reservamos ahora (atómico)
+        // 2. RESERVA DE STOCK: Si no está reservado, reservamos ahora (atómico)
         if (!sale.isStockDeducted) {
             try {
                 // Actualizamos la variable 'sale' con la info del stock reservado
@@ -137,13 +137,41 @@ export const handleWebhook = async (req: Request, res: Response) => {
 
                     if (!saleWithDetails) return;
 
+                    // ¿Qué pasa si MP avisa tarde y el cron ya la canceló?
+                    if (saleWithDetails.status === "CANCELLED") {
+                        console.log(
+                            `🚨 ALERTA CRÍTICA: La venta ${saleId} se pagó TARDE y el CronJob ya la había cancelado.`,
+                        );
+
+                        // Solo registramos que la plata de Mercado Pago entró (para contabilidad)
+                        await prisma.transaction.update({
+                            where: { saleId: saleId },
+                            data: {
+                                status: "approved",
+                                mpId: paymentData.id?.toString(),
+                                paymentMethod: paymentData.payment_method_id,
+                                paymentType: paymentData.payment_type_id,
+                            },
+                        });
+
+                        // IMPORTANTE: No marcamos la venta como COMPLETADA ni restamos stock.
+                        // La plata entró, pero el inventario está a salvo. Requiere revisión manual.
+                        console.log(
+                            `🛑 Se registró el pago #${dataId} en transacción, pero la VENTA #${saleId} queda CANCELADA.`,
+                        );
+                        return; // Cortamos la ejecución acá.
+                    }
+
                     // IMPORTANTE: Solo descontamos si NO se descontó antes
                     if (!saleWithDetails.isStockDeducted) {
-                        const stockUpdates = saleWithDetails.details.map((detail) =>
-                            prisma.product.update({
-                                where: { id: detail.productId },
-                                data: { stock: { decrement: detail.quantity } },
-                            }),
+                        const stockUpdates = saleWithDetails.details.map(
+                            (detail) =>
+                                prisma.product.update({
+                                    where: { id: detail.productId },
+                                    data: {
+                                        stock: { decrement: detail.quantity },
+                                    },
+                                }),
                         );
 
                         // 1. Transacción de Base de Datos
@@ -153,14 +181,19 @@ export const handleWebhook = async (req: Request, res: Response) => {
                                 data: {
                                     status: "approved",
                                     mpId: paymentData.id?.toString(),
-                                    paymentMethod: paymentData.payment_method_id,
+                                    paymentMethod:
+                                        paymentData.payment_method_id,
                                     paymentType: paymentData.payment_type_id,
-                                    cardLastFour: paymentData.card?.last_four_digits,
+                                    cardLastFour:
+                                        paymentData.card?.last_four_digits,
                                 },
                             }),
                             prisma.sale.update({
                                 where: { id: saleId },
-                                data: { status: "COMPLETED", isStockDeducted: true }, // Se marca como descontado
+                                data: {
+                                    status: "COMPLETED",
+                                    isStockDeducted: true,
+                                }, // Se marca como descontado
                             }),
                             ...stockUpdates,
                         ]);
@@ -176,9 +209,11 @@ export const handleWebhook = async (req: Request, res: Response) => {
                                 data: {
                                     status: "approved",
                                     mpId: paymentData.id?.toString(),
-                                    paymentMethod: paymentData.payment_method_id,
+                                    paymentMethod:
+                                        paymentData.payment_method_id,
                                     paymentType: paymentData.payment_type_id,
-                                    cardLastFour: paymentData.card?.last_four_digits,
+                                    cardLastFour:
+                                        paymentData.card?.last_four_digits,
                                 },
                             }),
                             prisma.sale.update({
@@ -186,12 +221,12 @@ export const handleWebhook = async (req: Request, res: Response) => {
                                 data: { status: "COMPLETED" },
                             }),
                         ]);
-                        console.log(`✅ Venta ${saleId} cobrada (Stock ya había sido descontado).`);
+                        console.log(
+                            `✅ Venta ${saleId} cobrada (Stock ya había sido descontado).`,
+                        );
                     }
 
-
-
-                    // 📧 2. ENVÍO DE MAIL DE CONFIRMACIÓN
+                    // 2. ENVÍO DE MAIL DE CONFIRMACIÓN
                     // Buscamos la data con los nombres de productos y la dirección histórica
                     const fullSaleInfo = await prisma.sale.findUnique({
                         where: { id: saleId },
@@ -219,7 +254,7 @@ export const handleWebhook = async (req: Request, res: Response) => {
                         sendOrderConfirmationEmail(
                             fullSaleInfo.client.email,
                             fullSaleInfo,
-                            paymentInfo, // 🔥 Le pasamos el tercer parámetro acá
+                            paymentInfo,
                         )
                             .then(() =>
                                 console.log(

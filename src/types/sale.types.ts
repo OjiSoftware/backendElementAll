@@ -6,7 +6,6 @@ import {
     Product,
 } from "../generated/prisma/client";
 
-
 type SaleDetailWithProduct = SaleDetails & {
     product: Product;
 };
@@ -15,6 +14,7 @@ export type SaleWithAll = Sale & {
     client: Client;
     address: BillAddress | null;
     details: SaleDetailWithProduct[];
+    transaction?: any; // 👈 ESTO ES LO QUE FALTABA
 };
 
 export type CreateSaleInput = {

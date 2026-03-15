@@ -14,7 +14,9 @@ export type CreateClientInput = {
         locality: string;
         province: string;
         reference?: string;
-    }
+        postalCode: string;
+        country: string;
+    };
 };
 
 export type UpdateClientInput = {
@@ -31,5 +33,7 @@ export type UpdateClientInput = {
         locality?: string;
         province?: string;
         reference?: string;
-    }
+        postalCode: string;
+        country: string;
+    };
 };

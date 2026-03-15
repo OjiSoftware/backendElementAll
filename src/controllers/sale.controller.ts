@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import * as saleService from "../services/sale.service";
-// 🔥 IMPORTANTE: Agregamos el mail de confirmación
 import {
     sendOrderCancellationEmail,
     sendOrderConfirmationEmail,
@@ -59,8 +58,23 @@ export const updateSale = async (req: Request, res: Response) => {
         const saleData = result.sale as unknown as SaleWithAll;
 
         if (saleData?.client?.email) {
+            // EXTRAEMOS LA INFO DEL PAGO SI EXISTE LA TRANSACCIÓN
+            const paymentInfo = saleData.transaction
+                ? {
+                      id: saleData.transaction.mpId || saleData.transaction.id,
+                      method: saleData.transaction.paymentMethod || "",
+                      type: saleData.transaction.paymentType || "",
+                      lastFour: saleData.transaction.cardLastFour,
+                  }
+                : undefined;
+
             if (req.body.status === "COMPLETED") {
-                sendOrderConfirmationEmail(saleData.client.email, saleData)
+                // LE PASAMOS EL paymentInfo
+                sendOrderConfirmationEmail(
+                    saleData.client.email,
+                    saleData,
+                    paymentInfo,
+                )
                     .then(() =>
                         console.log(
                             `📧 Mail de CONFIRMACIÓN enviado vía PUT: ${saleData.client.email}`,
@@ -72,10 +86,13 @@ export const updateSale = async (req: Request, res: Response) => {
                             err,
                         ),
                     );
-            }
-
-            else if (req.body.status === "CANCELLED") {
-                sendOrderCancellationEmail(saleData.client.email, saleData)
+            } else if (req.body.status === "CANCELLED") {
+                // LE PASAMOS EL paymentInfo
+                sendOrderCancellationEmail(
+                    saleData.client.email,
+                    saleData,
+                    paymentInfo,
+                )
                     .then(() =>
                         console.log(
                             `📧 Mail de CANCELACIÓN enviado vía PUT: ${saleData.client.email}`,
@@ -106,7 +123,22 @@ export const disableSale = async (req: Request, res: Response) => {
         const saleData = result.sale as unknown as SaleWithAll;
 
         if (saleData?.client?.email) {
-            sendOrderCancellationEmail(saleData.client.email, saleData)
+            // EXTRAEMOS LA INFO DEL PAGO
+            const paymentInfo = saleData.transaction
+                ? {
+                      id: saleData.transaction.mpId || saleData.transaction.id,
+                      method: saleData.transaction.paymentMethod || "",
+                      type: saleData.transaction.paymentType || "",
+                      lastFour: saleData.transaction.cardLastFour,
+                  }
+                : undefined;
+
+            // LE PASAMOS EL paymentInfo AL MAIL
+            sendOrderCancellationEmail(
+                saleData.client.email,
+                saleData,
+                paymentInfo,
+            )
                 .then(() =>
                     console.log(`📧 Mail enviado a: ${saleData.client.email}`),
                 )

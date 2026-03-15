@@ -126,12 +126,6 @@ export const insertSale = async (data: CreateSaleInput): Promise<SaleModel> => {
  * @param data - Datos a actualizar.
  * @returns Venta actualizada o null si no existe.
  */
-/**
- * Actualiza una venta existente.
- * @param id - ID de la venta a actualizar.
- * @param data - Datos a actualizar.
- * @returns Venta actualizada o null si no existe.
- */
 export const updateSale = async (
     id: number,
     data: UpdateSaleInput,
@@ -151,8 +145,11 @@ export const updateSale = async (
             // Separamos los detalles del resto de la data (Spread Operator)
             const { details, ...restData } = data;
 
-            // 🔥 NUEVA LÓGICA: Si el estado cambia a CANCELLED, devolvemos stock SOLO si fue descontado
-            if (data.status === "CANCELLED" && existingSale.status !== "CANCELLED") {
+            // Si el estado cambia a CANCELLED, devolvemos stock SOLO si fue descontado
+            if (
+                data.status === "CANCELLED" &&
+                existingSale.status !== "CANCELLED"
+            ) {
                 if (existingSale.isStockDeducted) {
                     for (const item of existingSale.details) {
                         await tx.product.update({
@@ -163,14 +160,15 @@ export const updateSale = async (
                 }
                 // Actualizamos registro
                 return await tx.sale.update({
-                     where: { id },
-                     data: { ...restData, isStockDeducted: false }, // Devuelto
-                     include: {
-                         details: { include: { product: true } },
-                         client: true,
-                         address: true,
-                     },
-                 });
+                    where: { id },
+                    data: { ...restData, isStockDeducted: false }, // Devuelto
+                    include: {
+                        details: { include: { product: true } },
+                        client: true,
+                        address: true,
+                        transaction: true,
+                    },
+                });
             }
 
             // 2. Si no hay detalles nuevos (y no estamos cancelando explícitamente arriba)
@@ -178,27 +176,34 @@ export const updateSale = async (
                 // Si el gestor decide pasar a COMPLETED o IN_PROGRESS manualmente
                 // y no se habia descontado el stock (ej: era una compra web re-aprobada manual)
                 let shouldDeductStockNow = false;
-                if ((data.status === "COMPLETED" || data.status === "IN_PROGRESS") && !existingSale.isStockDeducted) {
-                     shouldDeductStockNow = true;
-                     for (const item of existingSale.details) {
-                         // Aca no validamos maxstock para forzar el admin, pero podrias agregar check
-                         await tx.product.update({
-                             where: { id: item.productId },
-                             data: { stock: { decrement: item.quantity } },
-                         });
-                     }
+                if (
+                    (data.status === "COMPLETED" ||
+                        data.status === "IN_PROGRESS") &&
+                    !existingSale.isStockDeducted
+                ) {
+                    shouldDeductStockNow = true;
+                    for (const item of existingSale.details) {
+                        // Aca no validamos maxstock para forzar el admin, pero podrias agregar check
+                        await tx.product.update({
+                            where: { id: item.productId },
+                            data: { stock: { decrement: item.quantity } },
+                        });
+                    }
                 }
 
                 return await tx.sale.update({
                     where: { id },
-                    data: { 
-                         ...restData, 
-                         ...(shouldDeductStockNow ? { isStockDeducted: true } : {}) 
+                    data: {
+                        ...restData,
+                        ...(shouldDeductStockNow
+                            ? { isStockDeducted: true }
+                            : {}),
                     },
                     include: {
                         details: { include: { product: true } },
                         client: true,
                         address: true,
+                        transaction: true,
                     },
                 });
             }
@@ -226,13 +231,17 @@ export const updateSale = async (
                 item.quantity = item.quantity ?? 0;
 
                 if (!product) {
-                    throw new Error(`Producto con ID ${item.productId} no encontrado`);
+                    throw new Error(
+                        `Producto con ID ${item.productId} no encontrado`,
+                    );
                 }
 
                 // Solo descontamos stock si la venta NO está siendo cancelada
                 if (data.status !== "CANCELLED") {
                     if (product.stock < item.quantity) {
-                        throw new Error(`Stock insuficiente para el producto: ${product.name}`);
+                        throw new Error(
+                            `Stock insuficiente para el producto: ${product.name}`,
+                        );
                     }
                     await tx.product.update({
                         where: { id: item.productId },
@@ -266,7 +275,8 @@ export const updateSale = async (
                 include: {
                     details: { include: { product: true } },
                     client: true,
-                    address: true
+                    address: true,
+                    transaction: true,
                 },
             });
         });
@@ -311,6 +321,7 @@ export const disableSale = async (id: number): Promise<SaleModel | null> => {
                     client: true,
                     address: true,
                     details: { include: { product: true } },
+                    transaction: true,
                 },
             });
         });
@@ -320,15 +331,6 @@ export const disableSale = async (id: number): Promise<SaleModel | null> => {
     }
 };
 
-/**
- * Crea una orden pendiente desde el carrito público (Guest Checkout).
- * NO descuenta stock, ya que eso se delega al webhook de Mercado Pago una vez aprobado.
- * @param clientData - Datos del formulario del cliente.
- * @param items - Productos del carrito.
- * @param total - Monto total calculado.
- * @returns Venta creada en estado PENDING.
- * @throws Error si falla la operación en base de datos.
- */
 /**
  * Crea una orden pendiente desde el carrito público (Guest Checkout).
  * NO descuenta stock, ya que eso se delega al webhook de Mercado Pago.
@@ -371,6 +373,8 @@ export const insertGuestSale = async (
                         apartment: clientData.addresses.apartment || null,
                         locality: clientData.addresses.locality,
                         province: clientData.addresses.province,
+                        postalCode: clientData.addresses.postalCode,
+                        country: clientData.addresses.country,
                         reference: clientData.addresses.reference || null,
                     },
                 });
@@ -433,7 +437,10 @@ export const reserveStock = async (id: number): Promise<SaleModel> => {
                     where: { id: detail.productId },
                 });
 
-                if (!product) throw new Error(`Producto ${detail.productId} no encontrado`);
+                if (!product)
+                    throw new Error(
+                        `Producto ${detail.productId} no encontrado`,
+                    );
                 if (product.stock < detail.quantity) {
                     throw new Error(`Stock insuficiente para ${product.name}`);
                 }
@@ -454,14 +461,17 @@ export const reserveStock = async (id: number): Promise<SaleModel> => {
                     isStockDeducted: true,
                     expiresAt: expiresAt,
                 },
-                include: { 
-                    details: { include: { product: true } }, 
-                    client: true 
+                include: {
+                    details: { include: { product: true } },
+                    client: true,
                 },
             });
         });
     } catch (error: any) {
-        console.error(`Error al reservar stock para venta ${id}:`, error.message);
+        console.error(
+            `Error al reservar stock para venta ${id}:`,
+            error.message,
+        );
         throw new Error(error.message || "No se pudo reservar el stock");
     }
 };

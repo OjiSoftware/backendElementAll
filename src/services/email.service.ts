@@ -123,7 +123,7 @@ export const sendOrderConfirmationEmail = async (
           <div style="width: 60px; height: 60px; line-height: 60px; background-color: rgba(255,255,255,0.2); border-radius: 50%; display: inline-block; margin: 0 auto 20px auto; text-align: center;">
             <span style="font-size: 30px; vertical-align: middle;">✓</span>
           </div>
-          <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">¡Pago Confirmado!</h1>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">¡Pago confirmado!</h1>
           <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">Tu pedido #${saleData.id} se encuentra en preparación.</p>
         </div>
 
@@ -142,7 +142,8 @@ export const sendOrderConfirmationEmail = async (
               ${saleData.address?.street || "Sin calle"} ${saleData.address?.streetNum || ""}
               ${saleData.address?.floor ? `Piso ${saleData.address.floor}` : ""}
               ${saleData.address?.apartment ? `Dpto ${saleData.address.apartment}` : ""}<br>
-              ${saleData.address?.locality || "Sin localidad"}, ${saleData.address?.province || "Sin provincia"}
+              ${saleData.address?.locality || "Sin localidad"}, ${saleData.address?.province || "Sin provincia"}<br>
+              CP: ${saleData.address?.postalCode || "S/N"} - ${saleData.address?.country || "Argentina"}
             </p>
           </div>
 
@@ -211,17 +212,37 @@ export const sendOrderConfirmationEmail = async (
     await transporter.sendMail(mailOptions);
 };
 
-export const sendOrderCancellationEmail = async (to: string, saleData: any) => {
+export const sendOrderCancellationEmail = async (
+    to: string,
+    saleData: any,
+    paymentInfo?: {
+        id: string | number;
+        method: string;
+        type: string;
+        lastFour?: string | null;
+    },
+) => {
     const errorRed = "#dc2626";
     const totalFormatted = formatMoney(Number(saleData.total));
     const orderDate = saleData.createdAt
         ? getArgentinaFormattedDate(saleData.createdAt) + " hs"
         : "Fecha no disponible";
 
+    const formatPaymentType = (type: string) => {
+        const types: Record<string, string> = {
+            credit_card: "Tarjeta de Crédito",
+            debit_card: "Tarjeta de Débito",
+            account_money: "Dinero en cuenta (Mercado Pago)",
+            ticket: "Efectivo",
+            bank_transfer: "Transferencia Bancaria",
+        };
+        return types[type] || type;
+    };
+
     const mailOptions = {
         from: `"ElementAll" <${process.env.EMAIL_USER}>`,
         to,
-        subject: `Orden Anulada #${saleData.id} - ElementAll`,
+        subject: `Cancelación de Pedido #${saleData.id} - ElementAll`,
         html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 40px auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; color: #1f2937; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
 
@@ -229,14 +250,14 @@ export const sendOrderCancellationEmail = async (to: string, saleData: any) => {
           <div style="width: 60px; height: 60px; line-height: 56px; background-color: rgba(255,255,255,0.2); border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); display: inline-block; margin: 0 auto 20px auto; text-align: center;">
             <span style="font-size: 32px; font-family: Arial, sans-serif; vertical-align: middle;">✕</span>
           </div>
-          <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">¡Orden Anulada!</h1>
+          <h1 style="margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">¡Orden anulada!</h1>
           <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">Tu pedido #${saleData.id} ha sido cancelado.</p>
         </div>
 
         <div style="padding: 40px 30px;">
           <p style="font-size: 16px; line-height: 1.6; color: #374151; margin-top: 0;">
             Hola <strong>${saleData.client?.name || "Cliente"}</strong>,<br>
-            Te informamos que tu orden ha sido <strong>cancelada</strong>. Si realizaste un pago, el reembolso se procesará según las políticas de tu entidad bancaria.
+            Te informamos que tu orden ha sido <strong>cancelada</strong>. El reembolso se procesará automáticamente al medio de pago original.
           </p>
 
           <h2 style="font-size: 18px; color: #111827; margin: 35px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; font-weight: 600;">Detalles de la Orden</h2>
@@ -245,10 +266,30 @@ export const sendOrderCancellationEmail = async (to: string, saleData: any) => {
             <p style="margin: 0 0 10px 0;"><strong>Fecha de la orden:</strong> ${orderDate}</p>
             <p style="margin: 0;"><strong>Dirección Asociada:</strong><br>
               <span style="color: #111827; font-weight: 500;">${saleData.client?.name || ""} ${saleData.client?.surname || ""}</span><br>
-              ${saleData.address?.street || "Sin calle"} ${saleData.address?.streetNum || ""}<br>
-              ${saleData.address?.locality || "Sin localidad"}, ${saleData.address?.province || "Sin provincia"}
+              ${saleData.address?.street || "Sin calle"} ${saleData.address?.streetNum || ""}
+              ${saleData.address?.floor ? `Piso ${saleData.address.floor}` : ""}
+              ${saleData.address?.apartment ? `Dpto ${saleData.address.apartment}` : ""}<br>
+              ${saleData.address?.locality || "Sin localidad"}, ${saleData.address?.province || "Sin provincia"}<br>
+              CP: ${saleData.address?.postalCode || "S/N"} - ${saleData.address?.country || "Argentina"}
             </p>
           </div>
+
+          ${
+              paymentInfo
+                  ? `
+          <h2 style="font-size: 18px; color: #111827; margin: 35px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; font-weight: 600;">Detalles del Reembolso</h2>
+          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; font-size: 14px; line-height: 1.6; border-left: 4px solid ${errorRed}; color: #4b5563;">
+            <p style="margin: 0 0 10px 0;"><strong>Comprobante original (MP):</strong> <span style="font-family: monospace; font-size: 15px; color: #111827;">${paymentInfo.id}</span></p>
+            <p style="margin: 0;">
+              <strong>Reembolsado a:</strong> ${formatPaymentType(paymentInfo.type)}
+              <span style="text-transform: uppercase; font-weight: 700; font-size: 12px; background-color: #e5e7eb; padding: 2px 6px; border-radius: 4px; margin-left: 6px; color: #1f2937;">
+                ${paymentInfo.method} ${paymentInfo.lastFour ? `**** ${paymentInfo.lastFour}` : ""}
+              </span>
+            </p>
+          </div>
+          `
+                  : ""
+          }
 
           <h2 style="font-size: 18px; color: #111827; margin: 35px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #f3f4f6; font-weight: 600;">Productos Cancelados</h2>
           <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
