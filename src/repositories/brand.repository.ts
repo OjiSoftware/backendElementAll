@@ -76,16 +76,15 @@ export const updateBrand = async (
 };
 
 /**
- * Deshabilita una marca (soft delete).
+ * Elimina fisicamente una marca (hard delete).
  */
-export const disableBrand = async (id: number): Promise<BrandModel | null> => {
+export const deleteBrand = async (id: number): Promise<BrandModel | null> => {
     try {
-        return await prisma.brand.update({
+        return await prisma.brand.delete({
             where: { id },
-            data: { status: false },
         });
     } catch (error) {
-        console.warn(`Error al deshabilitar marca con id ${id}:`, error);
+        console.warn(`Error al eliminar marca con id ${id}:`, error);
         return null;
     }
 };

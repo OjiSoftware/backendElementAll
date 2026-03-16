@@ -62,20 +62,20 @@ export const modifyBrand = async (
 };
 
 /**
- * Deshabilita (soft delete) una marca.
+ * Elimina fisicamente una marca (hard delete).
  * @param id - ID de la marca
- * @returns Objeto con mensaje y la marca deshabilitada
+ * @returns Objeto con mensaje y la marca eliminada
  * @throws Error si no se encuentra la marca
  */
-export const disableBrand = async (
+export const deleteBrand = async (
     id: number,
 ): Promise<{ message: string; brand: BrandModel }> => {
-    const disabled = await brandRepo.disableBrand(id);
+    const deleted = await brandRepo.deleteBrand(id);
 
-    if (!disabled) throw new Error("Marca no encontrada");
+    if (!deleted) throw new Error("Marca no encontrada");
 
     return {
-        message: "Marca deshabilitada con éxito",
-        brand: disabled,
+        message: "Marca eliminada con éxito",
+        brand: deleted,
     };
 };
