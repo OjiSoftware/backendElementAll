@@ -17,7 +17,6 @@ enum SaleStatus {
   CANCELLED
 }
 
-// 1. Nuevo enum para los estados de pago
 enum TransactionStatus {
   pending
   approved
@@ -31,11 +30,10 @@ model User {
   password          String    @db.VarChar(255)
   name              String    @db.VarChar(50)
 
-  // Campos para la recuperación de contraseña
   resetToken        String?   @unique @db.VarChar(255)
   resetTokenExpires DateTime?
 
-  @@map("user")
+  @@map("users")
 }
 
 model Client {
@@ -52,7 +50,7 @@ model Client {
   // 2. Relación con las transacciones
   transactions      Transaction[]
 
-  @@map("client_info")
+  @@map("clients")
 }
 
 model BillAddress {
@@ -66,12 +64,11 @@ model BillAddress {
   postalCode        String    @map("postal_code") @db.VarChar(20)
   country           String    @db.VarChar(100)
   reference         String?   @db.VarChar(255)
-
   clientId          Int       @map("client_id")
   client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   sales             Sale[]
 
-  @@map("bill_address")
+  @@map("bill_addresses")
 }
 
 model Category {
@@ -89,10 +86,8 @@ model SubCategory {
   name              String    @unique @map("subcategory_name") @db.VarChar(100)
   createdAt         DateTime  @default(now()) @map("created_at")
   status            Boolean   @default(true)
-
   categoryId        Int       @map("categories_id")
   category          Category  @relation(fields: [categoryId], references: [id])
-
   products          Product[]
 
   @@map("subcategories")
@@ -103,10 +98,9 @@ model Brand {
   name              String    @unique @map("marca_name") @db.VarChar(100)
   createdAt         DateTime  @default(now()) @map("created_at")
   status            Boolean   @default(true)
-
   products          Product[]
 
-  @@map("brand")
+  @@map("brands")
 }
 
 model Sale {
@@ -116,7 +110,7 @@ model Sale {
   total             Decimal       @db.Decimal(10, 2)
   isStockDeducted   Boolean       @default(false) @map("is_stock_deducted")
   expiresAt         DateTime?     @map("expires_at")
-
+  notes             String?       @db.Text
   clientId          Int           @map("client_id")
   client            Client        @relation(fields: [clientId], references: [id])
   addressId         Int?          @map("address_id")
@@ -124,18 +118,15 @@ model Sale {
   details           SaleDetails[]
   transaction       Transaction?
 
-  @@map("sale")
+  @@map("sales")
 }
 
 model SaleDetails {
   id                Int       @id @default(autoincrement())
-
   saleId            Int       @map("sale_id")
   productId         Int       @map("product_id")
-
   quantity          Int
   unitaryPrice      Decimal   @map("unitary_price")
-
   sale              Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product           Product   @relation(fields: [productId], references: [id])
 
@@ -147,23 +138,14 @@ model Transaction {
   id                Int               @id @default(autoincrement())
   createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")
-
   amount            Decimal           @db.Decimal(10, 2)
   status            TransactionStatus @default(pending)
-
-  // ID que devuelve Mercado Pago
   mpId              String?           @unique @map("mp_id") @db.VarChar(255)
-
-  // Información del método de pago
   paymentMethod     String?           @map("payment_method") @db.VarChar(50)
   paymentType       String?           @map("payment_type") @db.VarChar(50)
   cardLastFour      String?           @map("card_last_four") @db.VarChar(4)
-
-  // Relación con Sale (1 a 1)
   saleId            Int               @unique @map("sale_id")
   sale              Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  // Relación con Client
   clientId          Int               @map("client_id")
   client            Client            @relation(fields: [clientId], references: [id])
 
@@ -181,13 +163,10 @@ model Product {
   imageUrl          String        @map("img") @db.VarChar(255)
   stock             Int
   showingInCatalog  Boolean       @default(false) @map("showing_in_catalog")
-
   subCategoryId     Int           @map("sub_categories_id")
   subCategory       SubCategory   @relation(fields: [subCategoryId], references: [id])
-
   brandId           Int           @map("brand_id")
   brand             Brand         @relation(fields: [brandId], references: [id])
-
   saleDetails       SaleDetails[]
 
   @@map("products")

@@ -16,11 +16,13 @@ export class PaymentService {
      * Crea la preferencia de pago en Mercado Pago
      * @param items - Lista de productos mapeados
      * @param externalReference - ID de la venta en la DB
+     * @param expiresAt - Fecha en la que la venta expira localmente
      * @param payerEmail - (Opcional) Email del cliente
      */
     async createPreference(
         items: PaymentItem[],
         externalReference: string,
+        expiresAt: Date,
         payerEmail?: string,
     ) {
         try {
@@ -28,6 +30,8 @@ export class PaymentService {
             const frontendUrl = (
                 process.env.FRONTEND_URL || "http://localhost:5173"
             ).replace(/\/$/, "");
+
+            const mpExpiration = new Date(expiresAt.getTime() - 30000);
 
             const body: any = {
                 items: items.map((item) => ({
@@ -46,12 +50,15 @@ export class PaymentService {
                 },
 
                 auto_return: "approved",
-
                 binary_mode: true,
                 external_reference: externalReference,
                 statement_descriptor: "ElementAll",
 
                 notification_url: `${process.env.BACKEND_TUNNEL_URL}/api/payments/webhook`,
+
+                // --- CAPA DE PREVENCIÓN DE MP ---
+                expires: true,
+                expiration_date_to: mpExpiration.toISOString(),
             };
 
             const response = await preference.create({ body });

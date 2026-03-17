@@ -60,14 +60,23 @@ export const startCleanupTask = () => {
                                 isStockDeducted: false,
                             },
                         });
+
+                        // 4. Cerrar la transacción asociada pasándola a rechazada
+                        // Usamos updateMany para que no frene el script si por algún error raro la transacción no existe
+                        await tx.transaction.updateMany({
+                            where: { saleId: sale.id },
+                            data: {
+                                status: "rejected",
+                            },
+                        });
                     });
 
                     console.log(
-                        `✅ Venta #${sale.id} cancelada por expiración.`,
+                        `✅ Venta #${sale.id} cancelada y transacción rechazada por expiración.`,
                     );
                 } catch (txError) {
                     console.error(
-                        `❌ Error aisalado al limpiar la venta #${sale.id}:`,
+                        `❌ Error aislado al limpiar la venta #${sale.id}:`,
                         txError,
                     );
                 }
