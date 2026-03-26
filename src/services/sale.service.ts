@@ -1,5 +1,6 @@
 // src/services/sale.service.ts
 import * as saleRepo from "../repositories/sale.repository";
+import * as emailService from "./email.service";
 import { Sale as SaleModel } from "../generated/prisma/client";
 import {
     CreateSaleInput,
@@ -37,13 +38,27 @@ export const getSaleById = async (id: number): Promise<SaleModel> => {
  * @returns Mensaje de confirmación y la venta creada
  */
 export const createSale = async (
-    data: CreateSaleInput,
+  data: CreateSaleInput,
 ): Promise<{ message: string; sale: SaleWithAll }> => {
-    const sale = await saleRepo.insertSale(data);
-    return {
-        message: "Venta creada con éxito",
-        sale: sale as SaleWithAll,
-    };
+  // 1. Solo notificamos si el admin marcó el checkbox Y la venta está COMPLETED
+  const shouldNotify = data.sendEmail === true && data.status === 'COMPLETED';
+
+  const sale = await saleRepo.insertSale(data);
+  const saleWithAll = sale as SaleWithAll;
+
+  if (shouldNotify) {
+    const email = saleWithAll.client?.email;
+    if (email) {
+      console.log('🚀 Disparando confirmación para VENTA NUEVA...');
+
+      emailService
+        .sendOrderConfirmationEmail(email, saleWithAll)
+        .then(() => console.log(`📧 Mail enviado con éxito a: ${email}`))
+        .catch((err) => console.error('❌ Error mail confirmación:', err));
+    }
+  }
+
+  return { message: 'Venta creada con éxito', sale: saleWithAll };
 };
 
 /**
@@ -53,20 +68,67 @@ export const createSale = async (
  * @returns Mensaje de confirmación y la venta actualizada
  * @throws Error si la venta no existe
  */
-export const updateSale = async (
-    id: number,
-    data: UpdateSaleInput,
-): Promise<{ message: string; sale: SaleWithAll }> => {
-    const sale = await saleRepo.updateSale(id, data);
+export const updateSale = async (id: number, data: UpdateSaleInput) => {
+  const currentSale = await saleRepo.findSaleById(id);
+  if (!currentSale) throw new Error('Venta no encontrada');
+  const previousStatus = currentSale.status;
 
-    if (!sale) {
-        throw new Error("Venta no encontrada");
+  const result = await saleRepo.updateSale(id, data);
+  const saleWithAll = result as SaleWithAll;
+
+  if (saleWithAll?.client?.email) {
+    const email = saleWithAll.client.email;
+    const isStatusChange = previousStatus !== saleWithAll.status;
+
+    const paymentInfo = saleWithAll.transaction
+      ? {
+          id: saleWithAll.transaction.mpId || saleWithAll.transaction.id,
+          method: saleWithAll.transaction.paymentMethod || '',
+          type: saleWithAll.transaction.paymentType || '',
+          lastFour: saleWithAll.transaction.cardLastFour,
+        }
+      : undefined;
+
+    // LÓGICA DE CONFIRMACIÓN
+    if (
+      saleWithAll.status === 'COMPLETED' &&
+      isStatusChange &&
+      data.sendEmail !== false
+    ) {
+      console.log('🚀 Disparando email de confirmación...');
+      emailService
+        .sendOrderConfirmationEmail(email, saleWithAll, paymentInfo)
+        .then(() =>
+          console.log(`📧 Mail de CONFIRMACIÓN enviado vía PUT: ${email}`),
+        )
+        .catch((err) =>
+          console.error('❌ Error mail confirmación en PUT:', err),
+        );
     }
+    // LÓGICA DE CANCELACIÓN
+    else if (saleWithAll.status === 'CANCELLED' && isStatusChange) {
+      if (data.silent) {
+        console.log(
+          `🤫 Cancelación silenciosa (MANUAL): Venta #${saleWithAll.id}. No se envía mail.`,
+        );
+      } else if (previousStatus === 'PENDING') {
+        console.log(
+          `🚫 Cancelación silenciosa (AUTO): La venta estaba PENDING, no se envió mail.`,
+        );
+      } else {
+        emailService
+          .sendOrderCancellationEmail(email, saleWithAll, paymentInfo)
+          .then(() =>
+            console.log(`📧 Mail de CANCELACIÓN enviado vía PUT: ${email}`),
+          )
+          .catch((err) =>
+            console.error('❌ Error mail cancelación en PUT:', err),
+          );
+      }
+    }
+  }
 
-    return {
-        message: "Venta actualizada con éxito",
-        sale: sale as SaleWithAll,
-    };
+  return { message: 'Venta actualizada con éxito', sale: saleWithAll };
 };
 
 /**
@@ -76,18 +138,40 @@ export const updateSale = async (
  * @throws Error si la venta no existe
  */
 export const disableSale = async (
-    id: number,
+  id: number,
 ): Promise<{ message: string; sale: SaleWithAll }> => {
-    const sale = await saleRepo.disableSale(id);
+  const currentSale = await saleRepo.findSaleById(id);
+  const wasPending = currentSale?.status === 'PENDING';
 
-    if (!sale) {
-        throw new Error("Venta no encontrada");
+  const result = await saleRepo.disableSale(id);
+  if (!result) throw new Error('Venta no encontrada');
+  const saleData = result as SaleWithAll;
+
+  if (saleData?.client?.email) {
+    if (!wasPending) {
+      const paymentInfo = saleData.transaction
+        ? {
+            id: saleData.transaction.mpId || saleData.transaction.id,
+            method: saleData.transaction.paymentMethod || '',
+            type: saleData.transaction.paymentType || '',
+            lastFour: saleData.transaction.cardLastFour,
+          }
+        : undefined;
+
+      emailService
+        .sendOrderCancellationEmail(
+          saleData.client.email,
+          saleData,
+          paymentInfo,
+        )
+        .then(() => console.log(`📧 Mail enviado a: ${saleData.client.email}`))
+        .catch((err) => console.error('❌ Error mail:', err));
+    } else {
+      console.log(`🚫 Cancelación silenciosa (Trash): La venta era PENDING.`);
     }
+  }
 
-    return {
-        message: "Venta eliminada con éxito",
-        sale: sale as SaleWithAll,
-    };
+  return { message: 'Venta eliminada con éxito', sale: saleData };
 };
 
 /**
