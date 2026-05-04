@@ -5,6 +5,8 @@ export type CreateBillAddressInput = {
   apartment?: string;
   locality: string;
   province: string;
+  postalCode: string;
+  country: string;
   reference?: string;
   clientId: number;
 };
@@ -16,5 +18,7 @@ export type UpdateBillAddressInput = {
   apartment?: string;
   locality?: string;
   province?: string;
+  postalCode?: string;
+  country?: string;
   reference?: string;
 };

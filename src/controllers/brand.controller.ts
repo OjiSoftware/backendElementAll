@@ -54,11 +54,11 @@ export const updateBrand = async (req: Request, res: Response) => {
 };
 
 /**
- * Deshabilita (soft delete) una marca.
+ * Elimina (hard delete) una marca.
  */
-export const disableBrand = async (req: Request, res: Response) => {
+export const deleteBrand = async (req: Request, res: Response) => {
     try {
-        const result = await brandService.disableBrand(Number(req.params.id));
+        const result = await brandService.deleteBrand(Number(req.params.id));
         res.json(result);
     } catch (error: any) {
         res.status(error.message === "Marca no encontrada" ? 404 : 500).json({
